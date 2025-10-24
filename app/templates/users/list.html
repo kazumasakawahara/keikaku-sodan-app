@@ -7,9 +7,14 @@
     <div class="col-12">
         <div class="d-flex justify-content-between align-items-center">
             <h1><i class="bi bi-people"></i> 利用者一覧</h1>
-            <a href="/users/new" class="btn btn-success">
-                <i class="bi bi-person-plus"></i> 新規登録
-            </a>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-primary" onclick="exportToCSV()">
+                    <i class="bi bi-file-earmark-spreadsheet"></i> CSV出力
+                </button>
+                <a href="/users/new" class="btn btn-success">
+                    <i class="bi bi-person-plus"></i> 新規登録
+                </a>
+            </div>
         </div>
     </div>
 </div>
@@ -158,5 +163,84 @@
         e.preventDefault();
         handleAdvancedSearch(e);
     });
+
+    // CSV出力関数
+    async function exportToCSV() {
+        try {
+            // 現在の検索パラメータを取得
+            const params = new URLSearchParams(window.location.search);
+
+            // CSV出力APIを呼び出し
+            const response = await fetch(`/api/users/export/csv?${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('CSVエクスポートに失敗しました');
+            }
+
+            // ファイルをダウンロード
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+
+            // Content-Dispositionからファイル名を取得
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = '利用者一覧.csv';
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/);
+                if (filenameMatch) {
+                    filename = decodeURIComponent(filenameMatch[1]);
+                }
+            }
+
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            // 成功メッセージ（ダウンロード先の情報を追加）
+            const downloadPath = getDownloadPath();
+            showToast(`CSVファイルをダウンロードしました\n${filename}\n保存先: ${downloadPath}`, 'success');
+        } catch (error) {
+            console.error('CSV出力エラー:', error);
+            showToast('CSVエクスポートに失敗しました: ' + error.message, 'error');
+        }
+    }
+
+    // ダウンロードフォルダのパスを取得（OS別）
+    function getDownloadPath() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        const username = ''; // ユーザー名は動的に取得できないため省略
+
+        if (userAgent.includes('mac')) {
+            return 'ダウンロードフォルダ (Finder > ダウンロード)';
+        } else if (userAgent.includes('win')) {
+            return 'ダウンロードフォルダ (エクスプローラー > ダウンロード)';
+        } else {
+            return 'ブラウザのダウンロードフォルダ';
+        }
+    }
+
+    // トースト表示関数（簡易版）
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `alert alert-${type === 'error' ? 'danger' : 'success'} position-fixed top-0 start-50 translate-middle-x m-3`;
+        toast.style.zIndex = '9999';
+        toast.style.whiteSpace = 'pre-line'; // 改行を有効化
+        toast.style.maxWidth = '500px';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.remove();
+        }, 5000); // 5秒に延長（情報量が増えたため）
+    }
 </script>
 {% endblock %}

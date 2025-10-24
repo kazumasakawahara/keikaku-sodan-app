@@ -4,6 +4,8 @@
 利用者のCRUD操作と検索機能を提供します。
 """
 from typing import List, Optional
+from io import StringIO
+import csv
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -368,5 +370,170 @@ def download_user_pdf(
         media_type="application/pdf",
         headers={
             "Content-Disposition": f"attachment; filename*=UTF-8''{filename}"
+        }
+    )
+
+
+@router.get("/export/csv")
+def export_users_csv(
+    search: Optional[str] = Query(None, description="氏名・カナで検索"),
+    name: Optional[str] = Query(None, description="氏名で検索"),
+    name_kana: Optional[str] = Query(None, description="カナで検索"),
+    staff_id: Optional[int] = Query(None, description="担当スタッフIDでフィルタ"),
+    min_age: Optional[int] = Query(None, ge=0, le=150, description="最低年齢"),
+    max_age: Optional[int] = Query(None, ge=0, le=150, description="最高年齢"),
+    disability_support_level: Optional[int] = Query(None, ge=1, le=6, description="障害支援区分"),
+    has_guardian: Optional[bool] = Query(None, description="後見人有無"),
+    gender: Optional[str] = Query(None, description="性別"),
+    include_deleted: bool = Query(False, description="削除済みを含む"),
+    db: Session = Depends(get_db),
+    current_staff: Staff = Depends(get_current_staff)
+):
+    """
+    利用者データをCSV形式でエクスポート
+
+    検索条件と同じフィルタリングオプションが使用可能です。
+
+    Args:
+        (list_usersと同じパラメータ)
+        db: データベースセッション
+        current_staff: 現在のスタッフ
+
+    Returns:
+        StreamingResponse: CSV data (Shift-JIS encoded for Excel compatibility)
+    """
+    # 利用者データ取得（list_usersと同じロジック）
+    query = db.query(User)
+
+    # 削除済みフィルタ
+    if not include_deleted:
+        query = query.filter(User.is_deleted == False)
+
+    # 検索フィルタ
+    if search:
+        search_katakana = hiragana_to_katakana(search)
+        search_pattern = f"%{search}%"
+        search_katakana_pattern = f"%{search_katakana}%"
+        query = query.filter(
+            or_(
+                User.name.like(search_pattern),
+                User.name.like(search_katakana_pattern),
+                User.name_kana.like(search_pattern),
+                User.name_kana.like(search_katakana_pattern)
+            )
+        )
+
+    if name:
+        query = query.filter(User.name.like(f"%{name}%"))
+
+    if name_kana:
+        query = query.filter(User.name_kana.like(f"%{name_kana}%"))
+
+    if staff_id:
+        query = query.filter(User.assigned_staff_id == staff_id)
+
+    if disability_support_level:
+        query = query.filter(User.disability_support_level == disability_support_level)
+
+    if has_guardian is not None:
+        if has_guardian:
+            query = query.filter(User.guardian_name.isnot(None))
+        else:
+            query = query.filter(User.guardian_name.is_(None))
+
+    if gender:
+        query = query.filter(User.gender == gender)
+
+    # 全件取得（エクスポートのため制限なし）
+    users = query.order_by(User.id.asc()).all()
+
+    # 年齢フィルタリング
+    if min_age is not None or max_age is not None:
+        filtered_users = []
+        for user in users:
+            age = user.age
+            if age is None:
+                continue
+            if min_age is not None and age < min_age:
+                continue
+            if max_age is not None and age > max_age:
+                continue
+            filtered_users.append(user)
+        users = filtered_users
+
+    # CSV生成
+    output = StringIO()
+    writer = csv.writer(output)
+
+    # ヘッダー行
+    writer.writerow([
+        "ID",
+        "氏名",
+        "氏名（カナ）",
+        "生年月日",
+        "年齢",
+        "性別",
+        "郵便番号",
+        "住所",
+        "電話番号",
+        "メールアドレス",
+        "緊急連絡先氏名",
+        "緊急連絡先電話番号",
+        "障害支援区分",
+        "障害支援区分認定日",
+        "障害支援区分有効期限",
+        "後見人種別",
+        "後見人氏名",
+        "後見人連絡先",
+        "担当スタッフ",
+        "作成日時",
+        "更新日時"
+    ])
+
+    # データ行
+    for user in users:
+        writer.writerow([
+            user.id,
+            user.name or "",
+            user.name_kana or "",
+            user.birth_date.strftime("%Y-%m-%d") if user.birth_date else "",
+            user.age if user.age is not None else "",
+            user.gender or "",
+            user.postal_code or "",
+            user.address or "",
+            user.phone or "",
+            user.email or "",
+            user.emergency_contact_name or "",
+            user.emergency_contact_phone or "",
+            f"区分{user.disability_support_level}" if user.disability_support_level else "",
+            user.disability_support_certified_date.strftime("%Y-%m-%d") if user.disability_support_certified_date else "",
+            user.disability_support_expiry_date.strftime("%Y-%m-%d") if user.disability_support_expiry_date else "",
+            user.guardian_type or "",
+            user.guardian_name or "",
+            user.guardian_contact or "",
+            user.assigned_staff.name if user.assigned_staff else "",
+            user.created_at.strftime("%Y-%m-%d %H:%M:%S") if user.created_at else "",
+            user.updated_at.strftime("%Y-%m-%d %H:%M:%S") if user.updated_at else ""
+        ])
+
+    # CSVデータを取得
+    csv_data = output.getvalue()
+    output.close()
+
+    # Shift-JISエンコード（Excel互換性のため）
+    csv_bytes = csv_data.encode("shift_jis", errors="replace")
+
+    # ファイル名生成
+    from datetime import datetime
+    from urllib.parse import quote
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"利用者一覧_{timestamp}.csv"
+    filename_encoded = quote(filename)
+
+    return StreamingResponse(
+        iter([csv_bytes]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{filename_encoded}"
         }
     )
