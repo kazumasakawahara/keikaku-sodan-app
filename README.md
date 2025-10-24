@@ -142,7 +142,7 @@ source .venv/bin/activate
 .venv\Scripts\activate
 
 # 4. 必要なソフトウェアをインストール（初回のみ）
-uv pip install -r requirements.txt
+uv sync
 
 # 5. データベースの初期化（初回のみ）
 python scripts/init_db.py
