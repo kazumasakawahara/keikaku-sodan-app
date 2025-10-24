@@ -1,0 +1,256 @@
+/* 計画相談支援 利用者管理システム - カスタムスタイル */
+
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --info-color: #0dcaf0;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+}
+
+body {
+    font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    background-color: #f8f9fa;
+}
+
+/* ナビゲーションバー */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.25rem;
+}
+
+/* カード */
+.card {
+    border: none;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.card-header {
+    border-radius: 8px 8px 0 0 !important;
+    font-weight: 600;
+}
+
+/* テーブル */
+.table {
+    margin-bottom: 0;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+/* ボタン */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.75rem;
+}
+
+/* フォーム */
+.form-control, .form-select {
+    border-radius: 6px;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* 統計カード */
+.card.text-center i {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+/* リストグループ */
+.list-group-item {
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    border: 1px solid #dee2e6;
+}
+
+/* ローディング */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1rem;
+    }
+
+    h1 {
+        font-size: 1.75rem;
+    }
+
+    .card {
+        margin-bottom: 1rem;
+    }
+}
+
+/* ログイン画面 */
+.min-vh-100 {
+    min-height: 100vh;
+}
+
+/* アニメーション */
+.card, .btn, .form-control {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* ブレッドクラム */
+.breadcrumb {
+    background-color: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+/* バッジ */
+.badge {
+    border-radius: 4px;
+    padding: 0.35em 0.65em;
+}
+
+/* アラート */
+.alert {
+    border-radius: 6px;
+    border: none;
+}
+
+/* カスタムスクロールバー */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Phase 3: ソート可能なテーブルヘッダー */
+th[onclick] {
+    cursor: pointer;
+    user-select: none;
+}
+
+th[onclick]:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.sort-icon {
+    font-size: 0.75em;
+    color: #6c757d;
+    margin-left: 4px;
+}
+
+/* Phase 3: グラフコンテナ */
+canvas {
+    max-height: 400px;
+}
+
+/* Phase 3: アラートスタイル */
+.alert h6 {
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.alert ul {
+    padding-left: 1.5rem;
+}
+
+.alert ul li {
+    margin-bottom: 0.25rem;
+}
+
+/* Phase 3: ページネーション */
+.pagination {
+    margin-bottom: 0;
+}
+
+.page-link {
+    color: var(--primary-color);
+    border-radius: 6px;
+    margin: 0 2px;
+}
+
+.page-link:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+.page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Phase 3: 検索フォームスタイル */
+.collapse {
+    transition: height 0.35s ease;
+}
+
+.form-label.small {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.25rem;
+}
+
+/* 検索候補サジェスト */
+#search-suggestions {
+    position: fixed;
+    z-index: 10000 !important;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: white;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    pointer-events: auto;
+}
+
+#search-suggestions .list-group-item {
+    border: none;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+    margin-bottom: 0;
+    pointer-events: auto;
+    position: relative;
+    will-change: auto;
+}
+
+#search-suggestions .list-group-item:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+    border-left-color: var(--primary-color);
+}
+
+#search-suggestions .list-group-item:first-child {
+    border-radius: 0.375rem 0.375rem 0 0;
+}
+
+#search-suggestions .list-group-item:last-child {
+    border-radius: 0 0 0.375rem 0.375rem;
+}

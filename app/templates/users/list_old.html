@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}利用者一覧 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>
+            <i class="bi bi-people"></i> 利用者一覧
+        </h1>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-8">
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="search-input" placeholder="氏名・カナで検索">
+            <button class="btn btn-primary" onclick="searchUsers()">検索</button>
+        </div>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="/users/new" class="btn btn-success">
+            <i class="bi bi-person-plus"></i> 新規登録
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div id="loading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">読み込み中...</span>
+            </div>
+        </div>
+
+        <div id="users-table" class="d-none">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>氏名</th>
+                            <th>氏名（カナ）</th>
+                            <th>年齢</th>
+                            <th>性別</th>
+                            <th>電話番号</th>
+                            <th>担当スタッフ</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-tbody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="no-results" class="text-center py-5 d-none">
+                <i class="bi bi-inbox" style="font-size: 3rem; color: #ccc;"></i>
+                <p class="text-muted mt-3">利用者が見つかりませんでした</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let allUsers = [];
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        await loadUsers();
+    });
+
+    async function loadUsers() {
+        try {
+            const response = await fetch('/api/users?limit=1000');
+            if (response.ok) {
+                allUsers = await response.json();
+                displayUsers(allUsers);
+            } else {
+                alert('利用者一覧の取得に失敗しました');
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        } finally {
+            document.getElementById('loading').classList.add('d-none');
+            document.getElementById('users-table').classList.remove('d-none');
+        }
+    }
+
+    function displayUsers(users) {
+        const tbody = document.getElementById('users-tbody');
+        const noResults = document.getElementById('no-results');
+
+        if (users.length === 0) {
+            tbody.innerHTML = '';
+            noResults.classList.remove('d-none');
+            return;
+        }
+
+        noResults.classList.add('d-none');
+        tbody.innerHTML = users.map(user => `
+            <tr>
+                <td>${user.id}</td>
+                <td>${user.name}</td>
+                <td>${user.name_kana || '-'}</td>
+                <td>${user.age !== null ? user.age + '歳' : '-'}</td>
+                <td>${user.gender || '-'}</td>
+                <td>${user.phone || '-'}</td>
+                <td>スタッフID: ${user.assigned_staff_id || '-'}</td>
+                <td>
+                    <a href="/users/${user.id}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye"></i> 詳細
+                    </a>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function searchUsers() {
+        const searchTerm = document.getElementById('search-input').value.toLowerCase();
+
+        if (!searchTerm) {
+            displayUsers(allUsers);
+            return;
+        }
+
+        const filtered = allUsers.filter(user =>
+            user.name.toLowerCase().includes(searchTerm) ||
+            (user.name_kana && user.name_kana.toLowerCase().includes(searchTerm))
+        );
+
+        displayUsers(filtered);
+    }
+
+    // Enterキーで検索
+    document.getElementById('search-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            searchUsers();
+        }
+    });
+</script>
+{% endblock %}

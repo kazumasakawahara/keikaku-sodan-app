@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}新規モニタリング記録 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/monitorings">モニタリング一覧</a></li>
+                <li class="breadcrumb-item active">新規作成</li>
+            </ol>
+        </nav>
+        <h1><i class="bi bi-plus-circle"></i> 新規モニタリング記録</h1>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form id="create-monitoring-form">
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="user_id" class="form-label">利用者 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="user_id" required>
+                        <option value="">選択してください</option>
+                        {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="staff_id" class="form-label">実施スタッフ <span class="text-danger">*</span></label>
+                    <select class="form-select" id="staff_id" required>
+                        <option value="">選択してください</option>
+                        {% for staff in staffs %}
+                        <option value="{{ staff.id }}">{{ staff.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="plan_id" class="form-label">関連計画</label>
+                    <select class="form-select" id="plan_id">
+                        <option value="">選択してください</option>
+                        {% for plan in plans %}
+                        <option value="{{ plan.id }}">計画ID: {{ plan.id }} ({{ plan.user.name }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="monitoring_date" class="form-label">実施日 <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="monitoring_date" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="monitoring_type" class="form-label">モニタリング種別 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="monitoring_type" required>
+                        <option value="">選択してください</option>
+                        <option value="定期">定期</option>
+                        <option value="随時">随時</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="next_monitoring_date" class="form-label">次回予定日</label>
+                    <input type="date" class="form-control" id="next_monitoring_date">
+                </div>
+            </div>
+
+            <!-- モニタリング内容 -->
+            <h5 class="mb-3 mt-4">モニタリング内容</h5>
+
+            <div class="mb-3">
+                <label for="service_usage_status" class="form-label">サービス利用状況</label>
+                <textarea class="form-control" id="service_usage_status" rows="3" placeholder="各サービスの利用状況を記入してください"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="goal_achievement" class="form-label">目標達成状況</label>
+                <textarea class="form-control" id="goal_achievement" rows="3" placeholder="計画の目標に対する達成状況を記入してください"></textarea>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="satisfaction" class="form-label">本人・家族の満足度</label>
+                    <select class="form-select" id="satisfaction">
+                        <option value="">選択してください</option>
+                        <option value="満足">満足</option>
+                        <option value="やや満足">やや満足</option>
+                        <option value="普通">普通</option>
+                        <option value="やや不満">やや不満</option>
+                        <option value="不満">不満</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="plan_revision_needed" class="form-label">計画変更の必要性</label>
+                    <select class="form-select" id="plan_revision_needed">
+                        <option value="false">不要</option>
+                        <option value="true">必要</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="changes_in_needs" class="form-label">ニーズの変化</label>
+                <textarea class="form-control" id="changes_in_needs" rows="3" placeholder="前回から変化したニーズがあれば記入してください"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="issues_and_concerns" class="form-label">課題・問題点</label>
+                <textarea class="form-control" id="issues_and_concerns" rows="3" placeholder="確認された課題や問題点を記入してください"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="future_policy" class="form-label">今後の方針</label>
+                <textarea class="form-control" id="future_policy" rows="3" placeholder="今後の支援方針を記入してください"></textarea>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <a href="/monitorings" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> キャンセル
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> 作成
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+    });
+
+    document.getElementById('create-monitoring-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = {
+            user_id: parseInt(document.getElementById('user_id').value),
+            staff_id: parseInt(document.getElementById('staff_id').value),
+            plan_id: document.getElementById('plan_id').value ? parseInt(document.getElementById('plan_id').value) : null,
+            monitoring_date: document.getElementById('monitoring_date').value,
+            monitoring_type: document.getElementById('monitoring_type').value,
+            next_monitoring_date: document.getElementById('next_monitoring_date').value || null,
+            service_usage_status: document.getElementById('service_usage_status').value || null,
+            goal_achievement: document.getElementById('goal_achievement').value || null,
+            satisfaction: document.getElementById('satisfaction').value || null,
+            changes_in_needs: document.getElementById('changes_in_needs').value || null,
+            issues_and_concerns: document.getElementById('issues_and_concerns').value || null,
+            future_policy: document.getElementById('future_policy').value || null,
+            plan_revision_needed: document.getElementById('plan_revision_needed').value === 'true'
+        };
+
+        try {
+            const response = await fetch('/api/monitorings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
+
+            if (response.ok) {
+                const newMonitoring = await response.json();
+                alert('モニタリング記録を作成しました');
+                window.location.href = `/monitorings/${newMonitoring.id}`;
+            } else {
+                const error = await response.json();
+                alert(`作成に失敗しました: ${error.detail}`);
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        }
+    });
+</script>
+{% endblock %}

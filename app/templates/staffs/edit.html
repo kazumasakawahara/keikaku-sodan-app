@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}スタッフ編集 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/dashboard">ダッシュボード</a></li>
+                <li class="breadcrumb-item"><a href="/staffs">スタッフ一覧</a></li>
+                <li class="breadcrumb-item active">編集</li>
+            </ol>
+        </nav>
+        <h1><i class="bi bi-pencil"></i> スタッフ編集</h1>
+    </div>
+</div>
+
+<form id="staffEditForm">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> アカウント情報</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3" id="staffFormFields">
+                <div class="col-12 text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">読み込み中...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0"><i class="bi bi-key"></i> パスワード変更（任意）</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> パスワードを変更する場合のみ入力してください。空欄の場合は変更されません。
+            </div>
+            <div class="row g-3">
+                <!-- 新しいパスワード -->
+                <div class="col-md-6">
+                    <label for="new_password" class="form-label">新しいパスワード</label>
+                    <input type="password" class="form-control" id="new_password" name="new_password"
+                           minlength="8">
+                    <small class="form-text text-muted">8文字以上で設定してください</small>
+                </div>
+
+                <!-- パスワード確認 -->
+                <div class="col-md-6">
+                    <label for="password_confirm" class="form-label">パスワード確認</label>
+                    <input type="password" class="form-control" id="password_confirm" name="password_confirm"
+                           minlength="8">
+                    <small class="form-text text-muted">確認のため同じパスワードを入力</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between mb-5">
+        <a href="/staffs/{{ staff_id }}" class="btn btn-secondary">
+            <i class="bi bi-x-circle"></i> キャンセル
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i> 更新
+        </button>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const staffId = {{ staff_id }};
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        checkAdminRole();
+        await loadStaffData();
+    });
+
+    function checkAdminRole() {
+        const currentUser = getCurrentUser();
+        if (!currentUser || currentUser.role !== 'admin') {
+            alert('この機能は管理者のみアクセス可能です');
+            window.location.href = '/dashboard';
+        }
+    }
+
+    async function loadStaffData() {
+        try {
+            const response = await fetch(`/api/staff/${staffId}`, {
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error('スタッフ情報の取得に失敗しました');
+            }
+
+            const staff = await response.json();
+            displayStaffForm(staff);
+
+        } catch (error) {
+            console.error('エラー:', error);
+            document.getElementById('staffFormFields').innerHTML = `
+                <div class="col-12 text-center text-danger">
+                    データの取得に失敗しました
+                </div>
+            `;
+        }
+    }
+
+    function displayStaffForm(staff) {
+        const currentUser = getCurrentUser();
+        const isSelf = currentUser && currentUser.id === staff.id;
+
+        document.getElementById('staffFormFields').innerHTML = `
+            <!-- ユーザー名 -->
+            <div class="col-md-6">
+                <label for="username" class="form-label">ユーザー名 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="username" name="username" required
+                       pattern="^[a-zA-Z0-9_]{3,20}$"
+                       value="${staff.username}"
+                       title="3〜20文字の英数字とアンダースコアのみ使用可能">
+                <small class="form-text text-muted">ログイン時に使用します</small>
+            </div>
+
+            <!-- 氏名 -->
+            <div class="col-md-6">
+                <label for="name" class="form-label">氏名 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="name" name="name" required
+                       value="${staff.name}">
+            </div>
+
+            <!-- メールアドレス -->
+            <div class="col-md-6">
+                <label for="email" class="form-label">メールアドレス</label>
+                <input type="email" class="form-control" id="email" name="email"
+                       value="${staff.email || ''}">
+            </div>
+
+            <!-- 役割 -->
+            <div class="col-md-6">
+                <label for="role" class="form-label">役割 <span class="text-danger">*</span></label>
+                <select class="form-select" id="role" name="role" required ${isSelf ? 'disabled' : ''}>
+                    <option value="staff" ${staff.role === 'staff' ? 'selected' : ''}>スタッフ</option>
+                    <option value="admin" ${staff.role === 'admin' ? 'selected' : ''}>管理者</option>
+                </select>
+                ${isSelf ? '<small class="form-text text-muted">自分自身の役割は変更できません</small>' : ''}
+            </div>
+
+            <!-- ステータス -->
+            <div class="col-md-6">
+                <label for="is_active" class="form-label">ステータス <span class="text-danger">*</span></label>
+                <select class="form-select" id="is_active" name="is_active" required>
+                    <option value="true" ${staff.is_active ? 'selected' : ''}>有効</option>
+                    <option value="false" ${!staff.is_active ? 'selected' : ''}>無効</option>
+                </select>
+            </div>
+        `;
+    }
+
+    document.getElementById('staffEditForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+
+        // パスワード変更がある場合のみチェック
+        const newPassword = formData.get('new_password');
+        const passwordConfirm = formData.get('password_confirm');
+
+        if (newPassword || passwordConfirm) {
+            if (newPassword !== passwordConfirm) {
+                alert('パスワードが一致しません');
+                return;
+            }
+        }
+
+        const data = {
+            username: formData.get('username'),
+            name: formData.get('name'),
+            email: formData.get('email') || null,
+            role: formData.get('role'),
+            is_active: formData.get('is_active') === 'true'
+        };
+
+        // パスワードが入力されている場合のみ追加
+        if (newPassword) {
+            data.password = newPassword;
+        }
+
+        try {
+            const response = await fetch(`/api/staff/${staffId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                showSuccessMessage('スタッフ情報を更新しました');
+                setTimeout(() => {
+                    window.location.href = `/staffs/${staffId}`;
+                }, 1000);
+            } else {
+                const error = await response.json();
+                alert(`更新に失敗しました: ${error.detail || '不明なエラー'}`);
+            }
+        } catch (error) {
+            console.error('更新エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        }
+    });
+
+    function showSuccessMessage(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+    }
+</script>
+{% endblock %}

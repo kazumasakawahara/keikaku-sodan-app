@@ -1,0 +1,28 @@
+[Unit]
+Description=計画相談支援 利用者管理システム
+After=network.target
+
+[Service]
+Type=simple
+User=keikaku-sodan
+Group=keikaku-sodan
+WorkingDirectory=/opt/keikaku-sodan-app
+Environment="PATH=/opt/keikaku-sodan-app/.venv/bin"
+ExecStart=/opt/keikaku-sodan-app/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+Restart=always
+RestartSec=10
+
+# セキュリティ設定
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/keikaku-sodan-app
+ReadWritePaths=/var/log/keikaku-sodan
+
+# ログ設定
+StandardOutput=append:/var/log/keikaku-sodan/app.log
+StandardError=append:/var/log/keikaku-sodan/error.log
+
+[Install]
+WantedBy=multi-user.target

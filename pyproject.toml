@@ -1,0 +1,33 @@
+[project]
+name = "keikaku-sodan-app"
+version = "0.1.0"
+description = "計画相談支援 利用者管理システム - Care Support Management Application for Kitakyushu City"
+requires-python = ">=3.11"
+dependencies = [
+    "alembic>=1.17.0",
+    "bcrypt>=5.0.0",
+    "email-validator>=2.3.0",
+    "fastapi>=0.120.0",
+    "jinja2>=3.1.6",
+    "pydantic-settings>=2.11.0",
+    "python-dateutil>=2.9.0.post0",
+    "python-dotenv>=1.1.1",
+    "python-jose>=3.5.0",
+    "python-multipart>=0.0.20",
+    "sqlalchemy>=2.0.44",
+    "uvicorn>=0.38.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+]

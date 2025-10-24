@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}ダッシュボード - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-speedometer2"></i> ダッシュボード
+        </h1>
+    </div>
+</div>
+
+<!-- 統計カード -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-people-fill text-primary" style="font-size: 2.5rem;"></i>
+                <h3 class="mt-2" id="total-users">-</h3>
+                <p class="text-muted mb-0">総利用者数</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-file-earmark-check text-success" style="font-size: 2.5rem;"></i>
+                <h3 class="mt-2" id="active-plans">-</h3>
+                <p class="text-muted mb-0">実施中の計画</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-calendar-check text-info" style="font-size: 2.5rem;"></i>
+                <h3 class="mt-2" id="upcoming-monitorings">-</h3>
+                <p class="text-muted mb-0">今月のモニタリング</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-exclamation-triangle text-warning" style="font-size: 2.5rem;"></i>
+                <h3 class="mt-2" id="total-alerts">-</h3>
+                <p class="text-muted mb-0">アラート</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- アラート一覧 -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-bell"></i> アラート</h5>
+            </div>
+            <div class="card-body">
+                <div id="alerts-container">
+                    <p class="text-muted">読み込み中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- グラフ -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="bi bi-pie-chart"></i> 相談記録の種別</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="consultationTypeChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0"><i class="bi bi-bar-chart"></i> 計画の承認状況</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="planStatusChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="bi bi-graph-up"></i> 月次相談件数推移</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="monthlyConsultationChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="mb-0"><i class="bi bi-people"></i> 年齢層別利用者</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="ageGroupChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- クイックアクション -->
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> クイックアクション</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/users/new" class="btn btn-outline-primary btn-lg">
+                        <i class="bi bi-person-plus"></i> 新規利用者登録
+                    </a>
+                    <a href="/users" class="btn btn-outline-primary btn-lg">
+                        <i class="bi bi-search"></i> 利用者検索
+                    </a>
+                    <a href="/plans" class="btn btn-outline-success btn-lg">
+                        <i class="bi bi-file-earmark-text"></i> 計画一覧
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> 最近の相談記録</h5>
+            </div>
+            <div class="card-body">
+                <div id="recent-consultations-list">
+                    <p class="text-muted">読み込み中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/dashboard-charts.js"></script>
+<script>
+    // ページロード時に統計データを取得
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        await loadDashboardStats();
+        await loadAlerts();
+        await loadRecentConsultations();
+    });
+
+    async function loadDashboardStats() {
+        try {
+            const response = await fetch('/api/dashboard/stats');
+            if (response.ok) {
+                const stats = await response.json();
+
+                // 統計カード更新
+                document.getElementById('total-users').textContent = stats.total_users;
+                document.getElementById('active-plans').textContent = stats.active_plans;
+                document.getElementById('upcoming-monitorings').textContent = stats.upcoming_monitorings;
+
+                // グラフ作成
+                if (Object.keys(stats.consultation_by_type).length > 0) {
+                    createConsultationTypeChart(stats.consultation_by_type);
+                }
+
+                if (Object.keys(stats.plan_status).length > 0) {
+                    createPlanStatusChart(stats.plan_status);
+                }
+
+                if (stats.monthly_consultations.length > 0) {
+                    createMonthlyConsultationChart(stats.monthly_consultations);
+                }
+
+                if (Object.keys(stats.users_by_age_group).length > 0) {
+                    createAgeGroupChart(stats.users_by_age_group);
+                }
+            }
+        } catch (error) {
+            console.error('統計データの取得に失敗しました:', error);
+        }
+    }
+
+    async function loadAlerts() {
+        try {
+            const response = await fetch('/api/dashboard/alerts');
+            if (response.ok) {
+                const alerts = await response.json();
+                const container = document.getElementById('alerts-container');
+                const totalAlerts = alerts.total_alerts;
+
+                document.getElementById('total-alerts').textContent = totalAlerts;
+
+                if (totalAlerts === 0) {
+                    container.innerHTML = '<p class="text-muted mb-0">アラートはありません</p>';
+                    return;
+                }
+
+                let html = '';
+
+                // 計画更新期限アラート
+                if (alerts.plan_expiring_soon.length > 0) {
+                    html += '<div class="alert alert-warning mb-3">';
+                    html += '<h6><i class="bi bi-exclamation-triangle"></i> 計画更新期限が近い</h6>';
+                    html += '<ul class="mb-0">';
+                    alerts.plan_expiring_soon.forEach(alert => {
+                        html += `<li><a href="/users/${alert.user_id}">${alert.user_name}</a> - `;
+                        html += `終了日: ${new Date(alert.end_date).toLocaleDateString('ja-JP')} `;
+                        html += `(残り${alert.days_remaining}日)</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+
+                // モニタリング期限超過アラート
+                if (alerts.monitoring_overdue.length > 0) {
+                    html += '<div class="alert alert-danger mb-3">';
+                    html += '<h6><i class="bi bi-exclamation-circle"></i> モニタリング期限超過</h6>';
+                    html += '<ul class="mb-0">';
+                    alerts.monitoring_overdue.forEach(alert => {
+                        html += `<li><a href="/users/${alert.user_id}">${alert.user_name}</a> - `;
+                        html += `実施予定日: ${new Date(alert.monitoring_date).toLocaleDateString('ja-JP')} `;
+                        html += `(${alert.days_overdue}日超過)</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+
+                // 手帳更新期限アラート
+                if (alerts.notebook_expiring.length > 0) {
+                    html += '<div class="alert alert-info mb-0">';
+                    html += '<h6><i class="bi bi-info-circle"></i> 手帳更新期限が近い</h6>';
+                    html += '<ul class="mb-0">';
+                    alerts.notebook_expiring.forEach(alert => {
+                        html += `<li><a href="/users/${alert.user_id}">${alert.user_name}</a> - `;
+                        html += `${alert.notebook_type} 更新日: ${new Date(alert.renewal_date).toLocaleDateString('ja-JP')} `;
+                        html += `(残り${alert.days_remaining}日)</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+
+                container.innerHTML = html;
+            }
+        } catch (error) {
+            console.error('アラートの取得に失敗しました:', error);
+        }
+    }
+
+    async function loadRecentConsultations() {
+        try {
+            const response = await fetch('/api/consultations?limit=5');
+            if (response.ok) {
+                const consultations = await response.json();
+                const listDiv = document.getElementById('recent-consultations-list');
+
+                if (consultations.length === 0) {
+                    listDiv.innerHTML = '<p class="text-muted mb-0">相談記録がありません</p>';
+                    return;
+                }
+
+                listDiv.innerHTML = '<div class="list-group">' + consultations.map(c => `
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">利用者ID: ${c.user_id}</h6>
+                            <small>${new Date(c.consultation_date).toLocaleDateString('ja-JP')}</small>
+                        </div>
+                        <p class="mb-1 small">${c.consultation_type} - ${c.content.substring(0, 50)}${c.content.length > 50 ? '...' : ''}</p>
+                    </div>
+                `).join('') + '</div>';
+            }
+        } catch (error) {
+            console.error('相談記録の取得に失敗しました:', error);
+        }
+    }
+</script>
+{% endblock %}

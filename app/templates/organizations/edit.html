@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}関係機関編集 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/organizations">関係機関一覧</a></li>
+                <li class="breadcrumb-item"><a href="/organizations/{{ organization_id }}">関係機関詳細</a></li>
+                <li class="breadcrumb-item active">編集</li>
+            </ol>
+        </nav>
+        <h1><i class="bi bi-pencil"></i> 関係機関編集</h1>
+    </div>
+</div>
+
+<div id="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">読み込み中...</span>
+    </div>
+</div>
+
+<div id="edit-form-container" class="card shadow-sm d-none">
+    <div class="card-body">
+        <form id="edit-organization-form">
+            <h5 class="mb-3">基本情報</h5>
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <label for="name" class="form-label">機関名 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="name" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="type" class="form-label">種別 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="type" required>
+                        <option value="">選択してください</option>
+                        <option value="サービス事業所">サービス事業所</option>
+                        <option value="医療機関">医療機関</option>
+                        <option value="後見人">後見人</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+            </div>
+
+            <h5 class="mb-3 mt-4">連絡先情報</h5>
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <label for="postal_code" class="form-label">郵便番号</label>
+                    <input type="text" class="form-control" id="postal_code" placeholder="例: 802-0001">
+                </div>
+                <div class="col-md-9">
+                    <label for="address" class="form-label">住所</label>
+                    <input type="text" class="form-control" id="address">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="phone" class="form-label">電話番号</label>
+                    <input type="tel" class="form-control" id="phone" placeholder="例: 093-521-1234">
+                </div>
+                <div class="col-md-4">
+                    <label for="fax" class="form-label">FAX番号</label>
+                    <input type="tel" class="form-control" id="fax" placeholder="例: 093-521-1235">
+                </div>
+                <div class="col-md-4">
+                    <label for="email" class="form-label">メールアドレス</label>
+                    <input type="email" class="form-control" id="email">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="contact_person" class="form-label">担当者名</label>
+                    <input type="text" class="form-control" id="contact_person">
+                </div>
+                <div class="col-md-6">
+                    <label for="website" class="form-label">ウェブサイト</label>
+                    <input type="url" class="form-control" id="website" placeholder="例: https://example.com">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-12">
+                    <label for="notes" class="form-label">備考</label>
+                    <textarea class="form-control" id="notes" rows="3"></textarea>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <a href="/organizations/{{ organization_id }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> キャンセル
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> 更新
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const organizationId = {{ organization_id }};
+
+window.addEventListener('DOMContentLoaded', async () => {
+    await checkAuth();
+    await loadOrganizationData();
+});
+
+/**
+ * 関係機関データを読み込んでフォームに設定
+ */
+async function loadOrganizationData() {
+    try {
+        const response = await fetch(`/api/organizations/${organizationId}`);
+        if (response.ok) {
+            const org = await response.json();
+            populateForm(org);
+            document.getElementById('loading').classList.add('d-none');
+            document.getElementById('edit-form-container').classList.remove('d-none');
+        } else if (response.status === 404) {
+            alert('関係機関が見つかりませんでした');
+            window.location.href = '/organizations';
+        } else {
+            alert('データの取得に失敗しました');
+        }
+    } catch (error) {
+        console.error('エラー:', error);
+        alert('サーバーとの通信に失敗しました');
+    }
+}
+
+/**
+ * フォームにデータを設定
+ */
+function populateForm(org) {
+    document.getElementById('name').value = org.name || '';
+    document.getElementById('type').value = org.type || '';
+    document.getElementById('postal_code').value = org.postal_code || '';
+    document.getElementById('address').value = org.address || '';
+    document.getElementById('phone').value = org.phone || '';
+    document.getElementById('fax').value = org.fax || '';
+    document.getElementById('email').value = org.email || '';
+    document.getElementById('contact_person').value = org.contact_person || '';
+    document.getElementById('website').value = org.website || '';
+    document.getElementById('notes').value = org.notes || '';
+}
+
+/**
+ * フォーム送信処理
+ */
+document.getElementById('edit-organization-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const formData = {
+        name: document.getElementById('name').value,
+        type: document.getElementById('type').value,
+        postal_code: document.getElementById('postal_code').value || null,
+        address: document.getElementById('address').value || null,
+        phone: document.getElementById('phone').value || null,
+        fax: document.getElementById('fax').value || null,
+        email: document.getElementById('email').value || null,
+        contact_person: document.getElementById('contact_person').value || null,
+        website: document.getElementById('website').value || null,
+        notes: document.getElementById('notes').value || null
+    };
+
+    try {
+        const response = await fetch(`/api/organizations/${organizationId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData),
+        });
+
+        if (response.ok) {
+            alert('関係機関情報を更新しました');
+            window.location.href = `/organizations/${organizationId}`;
+        } else {
+            const error = await response.json();
+            alert(`更新に失敗しました: ${error.detail}`);
+        }
+    } catch (error) {
+        console.error('エラー:', error);
+        alert('サーバーとの通信に失敗しました');
+    }
+});
+</script>
+{% endblock %}

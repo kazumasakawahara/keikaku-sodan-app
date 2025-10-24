@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block title %}ネットワーク図 - {{ user_name }} - 計画相談支援システム{% endblock %}
+
+{% block extra_css %}
+<style>
+    #network-graph {
+        width: 100%;
+        height: 700px;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        background-color: #fff;
+    }
+
+    .node {
+        cursor: pointer;
+    }
+
+    .node circle {
+        stroke-width: 2px;
+    }
+
+    .node-user circle {
+        fill: #0d6efd;
+        stroke: #084298;
+    }
+
+    .node-service circle {
+        fill: #0dcaf0;
+        stroke: #087990;
+    }
+
+    .node-medical circle {
+        fill: #198754;
+        stroke: #0f5132;
+    }
+
+    .node-guardian circle {
+        fill: #fd7e14;
+        stroke: #984c0c;
+    }
+
+    .node-staff circle {
+        fill: #6610f2;
+        stroke: #3d0a91;
+    }
+
+    .node-other circle {
+        fill: #6c757d;
+        stroke: #495057;
+    }
+
+    .node text {
+        font-size: 12px;
+        pointer-events: none;
+    }
+
+    .link {
+        stroke: #999;
+        stroke-opacity: 0.6;
+        stroke-width: 2px;
+    }
+
+    .link-label {
+        font-size: 10px;
+        fill: #666;
+        pointer-events: none;
+    }
+
+    .legend {
+        font-size: 12px;
+    }
+
+    .legend-item {
+        margin-bottom: 8px;
+    }
+
+    .legend-color {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+
+    .tooltip-custom {
+        position: absolute;
+        text-align: left;
+        padding: 8px;
+        font-size: 12px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        border-radius: 4px;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/users">利用者一覧</a></li>
+                <li class="breadcrumb-item"><a href="/users/{{ user_id }}">利用者詳細</a></li>
+                <li class="breadcrumb-item active">ネットワーク図</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="bi bi-diagram-3"></i> ネットワーク図: <span id="user-name">読み込み中...</span></h1>
+            <div>
+                <button class="btn btn-outline-primary me-2" onclick="exportNetworkAsPDF()">
+                    <i class="bi bi-file-pdf"></i> PDF出力
+                </button>
+                <button class="btn btn-outline-secondary me-2" onclick="exportNetworkAsPNG()">
+                    <i class="bi bi-download"></i> PNG出力
+                </button>
+                <button class="btn btn-outline-secondary" onclick="exportNetworkAsSVG()">
+                    <i class="bi bi-download"></i> SVG出力
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-9">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-diagram-3"></i> 関係機関ネットワーク</h5>
+            </div>
+            <div class="card-body p-0">
+                <div id="loading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">読み込み中...</span>
+                    </div>
+                </div>
+                <svg id="network-graph" class="d-none"></svg>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="bi bi-palette"></i> 凡例</h6>
+            </div>
+            <div class="card-body legend">
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #0d6efd;"></span>
+                    <strong>利用者</strong>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #0dcaf0;"></span>
+                    通所先・サービス
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #198754;"></span>
+                    医療機関
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #fd7e14;"></span>
+                    後見人
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #6610f2;"></span>
+                    担当スタッフ
+                </div>
+                <div class="legend-item">
+                    <span class="legend-color" style="background-color: #6c757d;"></span>
+                    その他
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mt-3">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="mb-0"><i class="bi bi-info-circle"></i> 操作方法</h6>
+            </div>
+            <div class="card-body small">
+                <ul class="mb-0 ps-3">
+                    <li>ドラッグでノードを移動</li>
+                    <li>ホバーで詳細情報を表示</li>
+                    <li>マウスホイールでズーム</li>
+                    <li>ドラッグで画面移動</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="tooltip" class="tooltip-custom"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/network-visualization.js?v=2"></script>
+<script>
+    const userId = {{ user_id }};
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        await loadNetworkData();
+    });
+
+    async function loadNetworkData() {
+        try {
+            const response = await fetch(`/api/network/users/${userId}/network`);
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById('user-name').textContent = data.user_name;
+                document.getElementById('loading').classList.add('d-none');
+                document.getElementById('network-graph').classList.remove('d-none');
+                createNetworkGraph(data);
+            } else if (response.status === 404) {
+                alert('利用者が見つかりませんでした');
+                window.location.href = '/users';
+            } else {
+                alert('ネットワークデータの取得に失敗しました');
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        }
+    }
+
+    async function exportNetworkAsPDF() {
+        try {
+            // SVGをPNG画像に変換
+            const svg = document.getElementById('network-graph');
+            const svgData = new XMLSerializer().serializeToString(svg);
+
+            // SVGからcanvasを作成
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+
+            // SVGをData URLに変換
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+
+            img.onload = async function() {
+                // canvasのサイズをSVGのサイズに合わせる
+                canvas.width = img.width || 800;
+                canvas.height = img.height || 600;
+
+                // 白い背景を描画
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // SVG画像を描画
+                ctx.drawImage(img, 0, 0);
+                URL.revokeObjectURL(url);
+
+                // CanvasをBase64 PNG画像に変換
+                const imageData = canvas.toDataURL('image/png');
+
+                // APIにPOSTリクエストを送信
+                const response = await fetch(`/api/network/users/${userId}/network/pdf`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ image_data: imageData })
+                });
+
+                if (response.ok) {
+                    // PDFをダウンロード
+                    const blob = await response.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = `ネットワーク図_${document.getElementById('user-name').textContent}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(downloadUrl);
+                    document.body.removeChild(a);
+                } else {
+                    alert('PDF出力に失敗しました');
+                }
+            };
+
+            img.onerror = function() {
+                URL.revokeObjectURL(url);
+                alert('画像の変換に失敗しました');
+            };
+
+            img.src = url;
+        } catch (error) {
+            console.error('エラー:', error);
+            alert('PDF出力中にエラーが発生しました');
+        }
+    }
+</script>
+{% endblock %}

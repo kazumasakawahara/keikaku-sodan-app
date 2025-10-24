@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block title %}計画詳細 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/plans">計画一覧</a></li>
+                <li class="breadcrumb-item active">計画詳細</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 id="plan-title"><i class="bi bi-file-earmark-text"></i> サービス利用計画詳細</h1>
+            <div class="btn-group">
+                <button class="btn btn-outline-primary" onclick="editPlan()">
+                    <i class="bi bi-pencil"></i> 編集
+                </button>
+                <button class="btn btn-outline-success" onclick="downloadPDF()">
+                    <i class="bi bi-file-pdf"></i> PDF出力
+                </button>
+                <button class="btn btn-outline-danger" onclick="deletePlan()">
+                    <i class="bi bi-trash"></i> 削除
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">読み込み中...</span>
+    </div>
+</div>
+
+<div id="plan-detail" class="d-none">
+    <!-- 計画基本情報 -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> 基本情報</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="40%">利用者</th>
+                            <td><a href="#" id="detail-user-link"><span id="detail-user-name"></span></a></td>
+                        </tr>
+                        <tr>
+                            <th>計画種別</th>
+                            <td id="detail-plan-type"></td>
+                        </tr>
+                        <tr>
+                            <th>計画番号</th>
+                            <td id="detail-plan-number"></td>
+                        </tr>
+                        <tr>
+                            <th>計画作成日</th>
+                            <td id="detail-created-date"></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="40%">計画期間</th>
+                            <td>
+                                <span id="detail-start-date"></span> 〜 <span id="detail-end-date"></span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>承認状況</th>
+                            <td><span id="detail-approval-status" class="badge"></span></td>
+                        </tr>
+                        <tr>
+                            <th>承認日</th>
+                            <td id="detail-approval-date"></td>
+                        </tr>
+                        <tr>
+                            <th>担当スタッフ</th>
+                            <td id="detail-staff"></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 利用者の状況 -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-person-badge"></i> 利用者の状況</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <h6 class="text-muted">現在の状況</h6>
+                <div id="detail-current-situation" class="border-start border-3 border-info ps-3">
+                    <p class="text-muted">記載なし</p>
+                </div>
+            </div>
+            <div>
+                <h6 class="text-muted">本人・家族の希望やニーズ</h6>
+                <div id="detail-hopes-and-needs" class="border-start border-3 border-info ps-3">
+                    <p class="text-muted">記載なし</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 援助方針と目標 -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-clipboard-check"></i> 援助方針と目標</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <h6 class="text-muted">総合的な援助方針</h6>
+                <div id="detail-support-policy" class="border-start border-3 border-success ps-3">
+                    <p class="text-muted">記載なし</p>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <h6 class="text-muted">長期目標</h6>
+                    <div id="detail-long-term-goal" class="border-start border-3 border-success ps-3">
+                        <p class="text-muted">記載なし</p>
+                    </div>
+                    <small class="text-muted">期間: <span id="detail-long-term-period">-</span></small>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-muted">短期目標</h6>
+                    <div id="detail-short-term-goal" class="border-start border-3 border-success ps-3">
+                        <p class="text-muted">記載なし</p>
+                    </div>
+                    <small class="text-muted">期間: <span id="detail-short-term-period">-</span></small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const planId = {{ plan_id }};
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        await loadPlanDetail();
+    });
+
+    async function loadPlanDetail() {
+        try {
+            const response = await fetch(`/api/plans/${planId}`);
+            if (response.ok) {
+                const plan = await response.json();
+                await displayPlanDetail(plan);
+            } else if (response.status === 404) {
+                alert('計画が見つかりませんでした');
+                window.location.href = '/plans';
+            } else {
+                alert('計画情報の取得に失敗しました');
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        } finally {
+            document.getElementById('loading').classList.add('d-none');
+            document.getElementById('plan-detail').classList.remove('d-none');
+        }
+    }
+
+    async function displayPlanDetail(plan) {
+        // 利用者情報を取得
+        try {
+            const userResponse = await fetch(`/api/users/${plan.user_id}`);
+            if (userResponse.ok) {
+                const user = await userResponse.json();
+                document.getElementById('detail-user-name').textContent = user.name;
+            } else {
+                document.getElementById('detail-user-name').textContent = `利用者ID: ${plan.user_id}`;
+            }
+        } catch (e) {
+            document.getElementById('detail-user-name').textContent = `利用者ID: ${plan.user_id}`;
+        }
+
+        document.getElementById('detail-user-link').href = `/users/${plan.user_id}`;
+
+        // 基本情報
+        document.getElementById('detail-plan-type').textContent = plan.plan_type || '-';
+        document.getElementById('detail-plan-number').textContent = plan.plan_number || '-';
+        document.getElementById('detail-created-date').textContent = plan.created_date ? new Date(plan.created_date).toLocaleDateString('ja-JP') : '-';
+        document.getElementById('detail-start-date').textContent = new Date(plan.start_date).toLocaleDateString('ja-JP');
+        document.getElementById('detail-end-date').textContent = new Date(plan.end_date).toLocaleDateString('ja-JP');
+
+        // 承認状況のバッジ
+        const statusBadge = document.getElementById('detail-approval-status');
+        const status = plan.approval_status || '作成中';
+        statusBadge.textContent = status;
+        let badgeClass = 'bg-secondary';
+        if (status === '承認済み') badgeClass = 'bg-success';
+        else if (status === '実施中') badgeClass = 'bg-primary';
+        else if (status === '作成中') badgeClass = 'bg-warning';
+        else if (status === '終了') badgeClass = 'bg-secondary';
+        statusBadge.className = `badge ${badgeClass}`;
+
+        document.getElementById('detail-approval-date').textContent = plan.approval_date ? new Date(plan.approval_date).toLocaleDateString('ja-JP') : '-';
+
+        // スタッフ情報を取得
+        try {
+            const staffResponse = await fetch(`/api/staffs/${plan.staff_id}`);
+            if (staffResponse.ok) {
+                const staff = await staffResponse.json();
+                document.getElementById('detail-staff').textContent = staff.name;
+            } else {
+                document.getElementById('detail-staff').textContent = `スタッフID: ${plan.staff_id}`;
+            }
+        } catch (e) {
+            document.getElementById('detail-staff').textContent = `スタッフID: ${plan.staff_id}`;
+        }
+
+        // 利用者の状況
+        const currentSituation = document.getElementById('detail-current-situation');
+        if (plan.current_situation) {
+            currentSituation.innerHTML = `<p class="mb-0 white-space-pre-wrap">${plan.current_situation}</p>`;
+        } else {
+            currentSituation.innerHTML = '<p class="text-muted mb-0">記載なし</p>';
+        }
+
+        const hopesAndNeeds = document.getElementById('detail-hopes-and-needs');
+        if (plan.hopes_and_needs) {
+            hopesAndNeeds.innerHTML = `<p class="mb-0 white-space-pre-wrap">${plan.hopes_and_needs}</p>`;
+        } else {
+            hopesAndNeeds.innerHTML = '<p class="text-muted mb-0">記載なし</p>';
+        }
+
+        // 援助方針と目標
+        const supportPolicy = document.getElementById('detail-support-policy');
+        if (plan.support_policy) {
+            supportPolicy.innerHTML = `<p class="mb-0 white-space-pre-wrap">${plan.support_policy}</p>`;
+        } else {
+            supportPolicy.innerHTML = '<p class="text-muted mb-0">記載なし</p>';
+        }
+
+        const longTermGoal = document.getElementById('detail-long-term-goal');
+        if (plan.long_term_goal) {
+            longTermGoal.innerHTML = `<p class="mb-0 white-space-pre-wrap">${plan.long_term_goal}</p>`;
+        } else {
+            longTermGoal.innerHTML = '<p class="text-muted mb-0">記載なし</p>';
+        }
+        document.getElementById('detail-long-term-period').textContent = plan.long_term_goal_period || '-';
+
+        const shortTermGoal = document.getElementById('detail-short-term-goal');
+        if (plan.short_term_goal) {
+            shortTermGoal.innerHTML = `<p class="mb-0 white-space-pre-wrap">${plan.short_term_goal}</p>`;
+        } else {
+            shortTermGoal.innerHTML = '<p class="text-muted mb-0">記載なし</p>';
+        }
+        document.getElementById('detail-short-term-period').textContent = plan.short_term_goal_period || '-';
+    }
+
+    function editPlan() {
+        window.location.href = `/plans/${planId}/edit`;
+    }
+
+    async function downloadPDF() {
+        try {
+            const response = await fetch(`/api/plans/${planId}/pdf`);
+            if (response.ok) {
+                const blob = await response.blob();
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = `計画_${planId}.pdf`;
+
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/);
+                    if (filenameMatch) {
+                        filename = decodeURIComponent(filenameMatch[1]);
+                    }
+                }
+
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                alert('PDF出力に失敗しました');
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            alert('PDF出力中にエラーが発生しました');
+        }
+    }
+
+    function deletePlan() {
+        if (confirm('この計画を削除してもよろしいですか?')) {
+            fetch(`/api/plans/${planId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('計画を削除しました');
+                    window.location.href = '/plans';
+                } else {
+                    alert('削除に失敗しました');
+                }
+            })
+            .catch(error => {
+                console.error('エラー:', error);
+                alert('削除中にエラーが発生しました');
+            });
+        }
+    }
+</script>
+{% endblock %}

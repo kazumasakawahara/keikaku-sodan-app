@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}関係機関詳細 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/organizations">関係機関一覧</a></li>
+                <li class="breadcrumb-item active">関係機関詳細</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 id="organization-name">関係機関詳細</h1>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="editOrganization()">
+                    <i class="bi bi-pencil"></i> 編集
+                </button>
+                <button class="btn btn-outline-danger" onclick="deleteOrganization()">
+                    <i class="bi bi-trash"></i> 削除
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">読み込み中...</span>
+    </div>
+</div>
+
+<div id="organization-detail" class="d-none">
+    <!-- 基本情報 -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-building"></i> 基本情報</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="35%">機関名</th>
+                            <td id="detail-name"></td>
+                        </tr>
+                        <tr>
+                            <th>種別</th>
+                            <td><span id="detail-type-badge"></span></td>
+                        </tr>
+                        <tr>
+                            <th>電話番号</th>
+                            <td id="detail-phone"></td>
+                        </tr>
+                        <tr>
+                            <th>FAX番号</th>
+                            <td id="detail-fax"></td>
+                        </tr>
+                        <tr>
+                            <th>メールアドレス</th>
+                            <td id="detail-email"></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="35%">郵便番号</th>
+                            <td id="detail-postal-code"></td>
+                        </tr>
+                        <tr>
+                            <th>住所</th>
+                            <td id="detail-address"></td>
+                        </tr>
+                        <tr>
+                            <th>担当者名</th>
+                            <td id="detail-contact-person"></td>
+                        </tr>
+                        <tr>
+                            <th>ウェブサイト</th>
+                            <td id="detail-website"></td>
+                        </tr>
+                        <tr>
+                            <th>備考</th>
+                            <td id="detail-notes"></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 利用者との紐付け -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-people"></i> この機関を利用している利用者</h5>
+        </div>
+        <div class="card-body">
+            <div id="loading-users" class="text-center py-3">
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">読み込み中...</span>
+                </div>
+            </div>
+            <div id="related-users-list" class="d-none">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>利用者名</th>
+                                <th>関係種別</th>
+                                <th>頻度</th>
+                                <th>開始日</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-tbody"></tbody>
+                    </table>
+                </div>
+                <div id="no-users" class="alert alert-info d-none">
+                    <i class="bi bi-info-circle"></i> この機関を利用している利用者はいません
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const organizationId = {{ organization_id }};
+
+window.addEventListener('DOMContentLoaded', async () => {
+    await checkAuth();
+    await loadOrganizationDetail();
+    await loadRelatedUsers();
+});
+
+/**
+ * 関係機関詳細を読み込み
+ */
+async function loadOrganizationDetail() {
+    try {
+        const response = await fetch(`/api/organizations/${organizationId}`);
+        if (response.ok) {
+            const org = await response.json();
+            displayOrganizationDetail(org);
+        } else if (response.status === 404) {
+            alert('関係機関が見つかりませんでした');
+            window.location.href = '/organizations';
+        } else {
+            alert('関係機関データの取得に失敗しました');
+        }
+    } catch (error) {
+        console.error('エラー:', error);
+        alert('サーバーとの通信に失敗しました');
+    }
+}
+
+/**
+ * 関係機関詳細を表示
+ */
+function displayOrganizationDetail(org) {
+    document.getElementById('organization-name').textContent = org.name;
+    document.getElementById('detail-name').textContent = org.name;
+
+    // 種別バッジ
+    const typeBadge = document.getElementById('detail-type-badge');
+    typeBadge.className = `badge ${getTypeBadgeClass(org.type)}`;
+    typeBadge.textContent = org.type;
+
+    document.getElementById('detail-phone').textContent = org.phone || '-';
+    document.getElementById('detail-fax').textContent = org.fax || '-';
+    document.getElementById('detail-email').textContent = org.email || '-';
+    document.getElementById('detail-postal-code').textContent = org.postal_code || '-';
+    document.getElementById('detail-address').textContent = org.address || '-';
+    document.getElementById('detail-contact-person').textContent = org.contact_person || '-';
+
+    // ウェブサイト(リンク付き)
+    const websiteElem = document.getElementById('detail-website');
+    if (org.website) {
+        websiteElem.innerHTML = `<a href="${org.website}" target="_blank" rel="noopener noreferrer">${org.website}</a>`;
+    } else {
+        websiteElem.textContent = '-';
+    }
+
+    document.getElementById('detail-notes').textContent = org.notes || '-';
+
+    document.getElementById('loading').classList.add('d-none');
+    document.getElementById('organization-detail').classList.remove('d-none');
+}
+
+/**
+ * この機関を利用している利用者一覧を取得
+ */
+async function loadRelatedUsers() {
+    try {
+        // すべての利用者-組織紐付けを取得して、この組織に関連するものをフィルタ
+        const response = await fetch(`/api/organizations/${organizationId}/users`);
+        if (!response.ok) {
+            throw new Error('利用者データの取得に失敗しました');
+        }
+
+        const userOrgs = await response.json();
+
+        document.getElementById('loading-users').classList.add('d-none');
+        document.getElementById('related-users-list').classList.remove('d-none');
+
+        if (userOrgs.length === 0) {
+            document.getElementById('no-users').classList.remove('d-none');
+            document.getElementById('users-tbody').innerHTML = '';
+        } else {
+            displayRelatedUsers(userOrgs);
+        }
+    } catch (error) {
+        console.error('エラー:', error);
+        document.getElementById('loading-users').innerHTML = '<div class="alert alert-danger">利用者データの取得に失敗しました</div>';
+    }
+}
+
+/**
+ * 関連利用者一覧を表示
+ */
+async function displayRelatedUsers(userOrgs) {
+    const tbody = document.getElementById('users-tbody');
+
+    // 各利用者の詳細情報を取得
+    const userDetails = await Promise.all(
+        userOrgs.map(async uo => {
+            try {
+                const res = await fetch(`/api/users/${uo.user_id}`);
+                if (res.ok) {
+                    const user = await res.json();
+                    return { ...uo, user };
+                }
+            } catch (e) {
+                console.error('利用者取得エラー:', e);
+            }
+            return null;
+        })
+    );
+
+    const validUsers = userDetails.filter(u => u !== null);
+
+    if (validUsers.length === 0) {
+        document.getElementById('no-users').classList.remove('d-none');
+        tbody.innerHTML = '';
+        return;
+    }
+
+    tbody.innerHTML = validUsers.map(uo => `
+        <tr>
+            <td>
+                <a href="/users/${uo.user_id}">${uo.user.name}</a>
+            </td>
+            <td>${uo.relationship_type || '-'}</td>
+            <td>${uo.frequency || '-'}</td>
+            <td>${uo.start_date ? formatDate(uo.start_date) : '-'}</td>
+            <td>
+                <a href="/users/${uo.user_id}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-eye"></i> 詳細
+                </a>
+            </td>
+        </tr>
+    `).join('');
+}
+
+/**
+ * 種別に応じたバッジクラスを取得
+ */
+function getTypeBadgeClass(type) {
+    const typeMap = {
+        'サービス事業所': 'bg-info',
+        '医療機関': 'bg-success',
+        '後見人': 'bg-warning',
+        'その他': 'bg-secondary'
+    };
+    return typeMap[type] || 'bg-secondary';
+}
+
+/**
+ * 日付フォーマット
+ */
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ja-JP');
+}
+
+/**
+ * 編集ページへ遷移
+ */
+function editOrganization() {
+    window.location.href = `/organizations/${organizationId}/edit`;
+}
+
+/**
+ * 削除処理
+ */
+async function deleteOrganization() {
+    if (!confirm('この関係機関を削除してもよろしいですか?\n※論理削除されます')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/organizations/${organizationId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok || response.status === 204) {
+            alert('関係機関を削除しました');
+            window.location.href = '/organizations';
+        } else {
+            alert('削除に失敗しました');
+        }
+    } catch (error) {
+        console.error('エラー:', error);
+        alert('サーバーとの通信に失敗しました');
+    }
+}
+</script>
+{% endblock %}

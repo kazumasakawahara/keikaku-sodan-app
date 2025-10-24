@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}関係機関新規登録 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/organizations">関係機関一覧</a></li>
+                <li class="breadcrumb-item active">新規登録</li>
+            </ol>
+        </nav>
+        <h1><i class="bi bi-plus-circle"></i> 関係機関新規登録</h1>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form id="create-organization-form">
+            <h5 class="mb-3">基本情報</h5>
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <label for="name" class="form-label">機関名 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="name" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="type" class="form-label">種別 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="type" required>
+                        <option value="">選択してください</option>
+                        <option value="サービス事業所">サービス事業所</option>
+                        <option value="医療機関">医療機関</option>
+                        <option value="後見人">後見人</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+            </div>
+
+            <h5 class="mb-3 mt-4">連絡先情報</h5>
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <label for="postal_code" class="form-label">郵便番号</label>
+                    <input type="text" class="form-control" id="postal_code" placeholder="例: 802-0001">
+                </div>
+                <div class="col-md-9">
+                    <label for="address" class="form-label">住所</label>
+                    <input type="text" class="form-control" id="address">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="phone" class="form-label">電話番号</label>
+                    <input type="tel" class="form-control" id="phone" placeholder="例: 093-521-1234">
+                </div>
+                <div class="col-md-4">
+                    <label for="fax" class="form-label">FAX番号</label>
+                    <input type="tel" class="form-control" id="fax" placeholder="例: 093-521-1235">
+                </div>
+                <div class="col-md-4">
+                    <label for="email" class="form-label">メールアドレス</label>
+                    <input type="email" class="form-control" id="email">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="contact_person" class="form-label">担当者名</label>
+                    <input type="text" class="form-control" id="contact_person">
+                </div>
+                <div class="col-md-6">
+                    <label for="website" class="form-label">ウェブサイト</label>
+                    <input type="url" class="form-control" id="website" placeholder="例: https://example.com">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-12">
+                    <label for="notes" class="form-label">備考</label>
+                    <textarea class="form-control" id="notes" rows="3"></textarea>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <a href="/organizations" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> キャンセル
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> 登録
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+    });
+
+    document.getElementById('create-organization-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = {
+            name: document.getElementById('name').value,
+            type: document.getElementById('type').value,
+            postal_code: document.getElementById('postal_code').value || null,
+            address: document.getElementById('address').value || null,
+            phone: document.getElementById('phone').value || null,
+            fax: document.getElementById('fax').value || null,
+            email: document.getElementById('email').value || null,
+            contact_person: document.getElementById('contact_person').value || null,
+            website: document.getElementById('website').value || null,
+            notes: document.getElementById('notes').value || null
+        };
+
+        try {
+            const response = await fetch('/api/organizations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
+
+            if (response.ok) {
+                const newOrg = await response.json();
+                alert('関係機関を登録しました');
+                window.location.href = `/organizations/${newOrg.id}`;
+            } else {
+                const error = await response.json();
+                alert(`登録に失敗しました: ${error.detail}`);
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        }
+    });
+</script>
+{% endblock %}

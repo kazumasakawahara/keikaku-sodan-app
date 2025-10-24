@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}相談記録一覧 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="bi bi-chat-dots"></i> 相談記録一覧</h1>
+            <a href="/consultations/new" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> 新規相談記録
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 検索フィルター -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form id="searchForm" class="row g-3">
+            <div class="col-md-4">
+                <label for="user_id" class="form-label">利用者</label>
+                <select class="form-select" id="user_id" name="user_id">
+                    <option value="">すべて</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="staff_id" class="form-label">担当スタッフ</label>
+                <select class="form-select" id="staff_id" name="staff_id">
+                    <option value="">すべて</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search"></i> 検索
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">読み込み中...</span>
+    </div>
+</div>
+
+<div id="consultations-list" class="d-none">
+    <!-- 相談記録がここに表示されます -->
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentFilters = {};
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        await loadUserList();
+        await loadStaffList();
+        await loadConsultations();
+    });
+
+    async function loadUserList() {
+        try {
+            const response = await fetch('/api/users?limit=1000');
+            if (response.ok) {
+                const users = await response.json();
+                const select = document.getElementById('user_id');
+
+                users.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = user.name;
+                    select.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('利用者一覧の取得に失敗:', error);
+        }
+    }
+
+    async function loadStaffList() {
+        try {
+            const response = await fetch('/api/staff');
+            if (response.ok) {
+                const staffList = await response.json();
+                const select = document.getElementById('staff_id');
+
+                staffList.forEach(staff => {
+                    const option = document.createElement('option');
+                    option.value = staff.id;
+                    option.textContent = staff.name;
+                    select.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('スタッフ一覧の取得に失敗:', error);
+        }
+    }
+
+    document.getElementById('searchForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        currentFilters = {};
+
+        for (const [key, value] of formData.entries()) {
+            if (value) {
+                currentFilters[key] = value;
+            }
+        }
+
+        await loadConsultations();
+    });
+
+    async function loadConsultations() {
+        try {
+            const params = new URLSearchParams(currentFilters);
+            const response = await fetch(`/api/consultations?${params.toString()}`);
+
+            if (response.ok) {
+                const consultations = await response.json();
+                displayConsultations(consultations);
+            } else {
+                alert('相談記録の取得に失敗しました');
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        } finally {
+            document.getElementById('loading').classList.add('d-none');
+            document.getElementById('consultations-list').classList.remove('d-none');
+        }
+    }
+
+    async function displayConsultations(consultations) {
+        const listDiv = document.getElementById('consultations-list');
+
+        if (consultations.length === 0) {
+            listDiv.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> 相談記録が見つかりませんでした
+                </div>
+            `;
+            return;
+        }
+
+        // 利用者名とスタッフ名を取得
+        const userNames = {};
+        const staffNames = {};
+
+        for (const consultation of consultations) {
+            if (!userNames[consultation.user_id]) {
+                try {
+                    const userResponse = await fetch(`/api/users/${consultation.user_id}`);
+                    if (userResponse.ok) {
+                        const user = await userResponse.json();
+                        userNames[consultation.user_id] = user.name;
+                    }
+                } catch (e) {
+                    userNames[consultation.user_id] = `利用者ID: ${consultation.user_id}`;
+                }
+            }
+
+            if (!staffNames[consultation.staff_id]) {
+                try {
+                    const staffResponse = await fetch(`/api/staff/${consultation.staff_id}`);
+                    if (staffResponse.ok) {
+                        const staff = await staffResponse.json();
+                        staffNames[consultation.staff_id] = staff.name;
+                    }
+                } catch (e) {
+                    staffNames[consultation.staff_id] = `スタッフID: ${consultation.staff_id}`;
+                }
+            }
+        }
+
+        listDiv.innerHTML = consultations.map(c => `
+            <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5 class="card-title">
+                                ${new Date(c.consultation_date).toLocaleDateString('ja-JP')} - ${c.consultation_type}
+                            </h5>
+                            <p class="mb-1"><strong>利用者:</strong> ${userNames[c.user_id] || '不明'}</p>
+                            <p class="mb-1"><strong>担当:</strong> ${staffNames[c.staff_id] || '不明'}</p>
+                            <p class="mb-1"><strong>相談内容:</strong> ${c.content}</p>
+                            ${c.response ? `<p class="mb-0 text-muted"><strong>対応:</strong> ${c.response}</p>` : ''}
+                        </div>
+                        <div class="col-md-4 d-flex flex-column justify-content-center gap-2">
+                            <a href="/consultations/${c.id}/edit" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil"></i> 編集
+                            </a>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteConsultation(${c.id}, '${userNames[c.user_id]}')">
+                                <i class="bi bi-trash"></i> 削除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function deleteConsultation(id, userName) {
+        if (!confirm(`${userName}さんの相談記録を削除してもよろしいですか?\n\n※この操作は取り消せません。`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/consultations/${id}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            if (response.ok || response.status === 204) {
+                showSuccessMessage('相談記録を削除しました');
+                await loadConsultations();
+            } else {
+                alert('削除に失敗しました');
+            }
+        } catch (error) {
+            console.error('削除エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        }
+    }
+
+    function showSuccessMessage(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 3000);
+    }
+</script>
+{% endblock %}

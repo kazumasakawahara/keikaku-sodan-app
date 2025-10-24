@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}スタッフ詳細 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/dashboard">ダッシュボード</a></li>
+                <li class="breadcrumb-item"><a href="/staffs">スタッフ一覧</a></li>
+                <li class="breadcrumb-item active">スタッフ詳細</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="bi bi-person-badge"></i> スタッフ詳細</h1>
+            <div id="admin-controls" style="display: none;">
+                <a href="#" id="editBtn" class="btn btn-primary me-2">
+                    <i class="bi bi-pencil"></i> 編集
+                </a>
+                <button id="deleteBtn" class="btn btn-danger" style="display: none;">
+                    <i class="bi bi-trash"></i> 削除
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- スタッフ基本情報 -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-info-circle"></i> 基本情報</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3" id="staffInfo">
+            <div class="col-12 text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">読み込み中...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 担当利用者統計 -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0"><i class="bi bi-bar-chart"></i> 担当利用者統計</h5>
+    </div>
+    <div class="card-body">
+        <div class="row text-center" id="statsInfo">
+            <div class="col-md-3">
+                <h3 id="totalUsers" class="text-primary">-</h3>
+                <p class="text-muted">担当利用者</p>
+            </div>
+            <div class="col-md-3">
+                <h3 id="totalConsultations" class="text-success">-</h3>
+                <p class="text-muted">相談記録</p>
+            </div>
+            <div class="col-md-3">
+                <h3 id="totalPlans" class="text-warning">-</h3>
+                <p class="text-muted">計画</p>
+            </div>
+            <div class="col-md-3">
+                <h3 id="totalMonitorings" class="text-info">-</h3>
+                <p class="text-muted">モニタリング</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const staffId = {{ staff_id }};
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        await loadStaffDetail();
+        await loadStaffStats();
+        checkAdminRole();
+    });
+
+    function checkAdminRole() {
+        const currentUser = getCurrentUser();
+        if (currentUser && currentUser.role === 'admin') {
+            document.getElementById('admin-controls').style.display = 'block';
+            document.getElementById('editBtn').href = `/staffs/${staffId}/edit`;
+
+            // 自分自身は削除できない
+            if (currentUser.id !== staffId) {
+                document.getElementById('deleteBtn').style.display = 'inline-block';
+            }
+        }
+    }
+
+    async function loadStaffDetail() {
+        try {
+            const response = await fetch(`/api/staff/${staffId}`, {
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error('スタッフ情報の取得に失敗しました');
+            }
+
+            const staff = await response.json();
+            displayStaffInfo(staff);
+
+        } catch (error) {
+            console.error('エラー:', error);
+            document.getElementById('staffInfo').innerHTML = `
+                <div class="col-12 text-center text-danger">
+                    データの取得に失敗しました
+                </div>
+            `;
+        }
+    }
+
+    function displayStaffInfo(staff) {
+        const roleBadge = staff.role === 'admin'
+            ? '<span class="badge bg-danger">管理者</span>'
+            : '<span class="badge bg-info">スタッフ</span>';
+
+        const statusBadge = staff.is_active
+            ? '<span class="badge bg-success">有効</span>'
+            : '<span class="badge bg-secondary">無効</span>';
+
+        document.getElementById('staffInfo').innerHTML = `
+            <div class="col-md-6">
+                <label class="form-label fw-bold">ID</label>
+                <p class="form-control-plaintext">${staff.id}</p>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">ユーザー名</label>
+                <p class="form-control-plaintext">${staff.username}</p>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">氏名</label>
+                <p class="form-control-plaintext">${staff.name}</p>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">メールアドレス</label>
+                <p class="form-control-plaintext">${staff.email || '<span class="text-muted">未設定</span>'}</p>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">役割</label>
+                <p class="form-control-plaintext">${roleBadge}</p>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">ステータス</label>
+                <p class="form-control-plaintext">${statusBadge}</p>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">作成日時</label>
+                <p class="form-control-plaintext">${new Date(staff.created_at).toLocaleString('ja-JP')}</p>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">更新日時</label>
+                <p class="form-control-plaintext">${new Date(staff.updated_at).toLocaleString('ja-JP')}</p>
+            </div>
+        `;
+    }
+
+    async function loadStaffStats() {
+        try {
+            // 担当利用者数
+            const usersResponse = await fetch(`/api/users?staff_id=${staffId}&limit=1000`, {
+                credentials: 'include'
+            });
+            const users = usersResponse.ok ? await usersResponse.json() : [];
+            document.getElementById('totalUsers').textContent = users.length;
+
+            // 相談記録数
+            const consultationsResponse = await fetch(`/api/consultations?staff_id=${staffId}&limit=1000`, {
+                credentials: 'include'
+            });
+            const consultations = consultationsResponse.ok ? await consultationsResponse.json() : [];
+            document.getElementById('totalConsultations').textContent = consultations.length;
+
+            // 計画数
+            const plansResponse = await fetch(`/api/plans?staff_id=${staffId}&limit=1000`, {
+                credentials: 'include'
+            });
+            const plans = plansResponse.ok ? await plansResponse.json() : [];
+            document.getElementById('totalPlans').textContent = plans.length;
+
+            // モニタリング数
+            const monitoringsResponse = await fetch(`/api/monitorings?staff_id=${staffId}&limit=1000`, {
+                credentials: 'include'
+            });
+            const monitorings = monitoringsResponse.ok ? await monitoringsResponse.json() : [];
+            document.getElementById('totalMonitorings').textContent = monitorings.length;
+
+        } catch (error) {
+            console.error('統計データ取得エラー:', error);
+        }
+    }
+
+    document.getElementById('deleteBtn')?.addEventListener('click', async () => {
+        const staffInfo = document.getElementById('staffInfo');
+        const staffName = staffInfo.querySelector('p.form-control-plaintext')?.parentElement?.nextElementSibling?.querySelector('p')?.textContent;
+
+        if (!confirm(`スタッフ「${staffName}」を削除してもよろしいですか？\nこの操作は取り消せません。`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/staff/${staffId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                alert('スタッフを削除しました');
+                window.location.href = '/staffs';
+            } else {
+                const error = await response.json();
+                alert(`削除に失敗しました: ${error.detail || '不明なエラー'}`);
+            }
+        } catch (error) {
+            console.error('削除エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        }
+    });
+</script>
+{% endblock %}

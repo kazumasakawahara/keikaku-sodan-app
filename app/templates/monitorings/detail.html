@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+
+{% block title %}モニタリング詳細 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/monitorings">モニタリング一覧</a></li>
+                <li class="breadcrumb-item active">モニタリング詳細</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 id="monitoring-title"><i class="bi bi-clipboard-check"></i> モニタリング記録詳細</h1>
+            <div class="btn-group">
+                <button class="btn btn-outline-primary" onclick="editMonitoring()">
+                    <i class="bi bi-pencil"></i> 編集
+                </button>
+                <button class="btn btn-outline-success" onclick="downloadPDF()">
+                    <i class="bi bi-file-pdf"></i> PDF出力
+                </button>
+                <button class="btn btn-outline-danger" onclick="deleteMonitoring()">
+                    <i class="bi bi-trash"></i> 削除
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">読み込み中...</span>
+    </div>
+</div>
+
+<div id="monitoring-detail" class="d-none">
+    <!-- 基本情報 -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> 基本情報</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="40%">利用者</th>
+                            <td><a href="#" id="detail-user-link"><span id="detail-user-name"></span></a></td>
+                        </tr>
+                        <tr>
+                            <th>関連計画</th>
+                            <td><a href="#" id="detail-plan-link"><span id="detail-plan-number"></span></a></td>
+                        </tr>
+                        <tr>
+                            <th>モニタリング種別</th>
+                            <td id="detail-monitoring-type"></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="40%">実施日</th>
+                            <td id="detail-monitoring-date"></td>
+                        </tr>
+                        <tr>
+                            <th>実施スタッフ</th>
+                            <td id="detail-staff"></td>
+                        </tr>
+                        <tr>
+                            <th>次回予定日</th>
+                            <td id="detail-next-date"></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- モニタリング内容 -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-clipboard-data"></i> モニタリング内容</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <h6 class="text-muted">サービス利用状況</h6>
+                <div id="detail-service-usage" class="border-start border-3 border-info ps-3">
+                    <p class="text-muted">記載なし</p>
+                </div>
+            </div>
+            <div class="mb-3">
+                <h6 class="text-muted">目標達成状況</h6>
+                <div id="detail-goal-achievement" class="border-start border-3 border-info ps-3">
+                    <p class="text-muted">記載なし</p>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <h6 class="text-muted">満足度</h6>
+                    <div id="detail-satisfaction" class="border-start border-3 border-info ps-3">
+                        <p class="text-muted">未評価</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-muted">計画変更の必要性</h6>
+                    <div id="detail-plan-revision" class="border-start border-3 border-info ps-3">
+                        <p class="text-muted">不要</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 課題と今後の方針 -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> 課題と今後の方針</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <h6 class="text-muted">ニーズの変化</h6>
+                <div id="detail-changes-needs" class="border-start border-3 border-warning ps-3">
+                    <p class="text-muted">記載なし</p>
+                </div>
+            </div>
+            <div class="mb-3">
+                <h6 class="text-muted">課題・問題点</h6>
+                <div id="detail-issues" class="border-start border-3 border-warning ps-3">
+                    <p class="text-muted">記載なし</p>
+                </div>
+            </div>
+            <div>
+                <h6 class="text-muted">今後の方針</h6>
+                <div id="detail-future-policy" class="border-start border-3 border-warning ps-3">
+                    <p class="text-muted">記載なし</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const monitoringId = {{ monitoring_id }};
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        await loadMonitoringDetail();
+    });
+
+    async function loadMonitoringDetail() {
+        try {
+            const response = await fetch(`/api/monitorings/${monitoringId}`);
+            if (response.ok) {
+                const monitoring = await response.json();
+                await displayMonitoringDetail(monitoring);
+            } else if (response.status === 404) {
+                alert('モニタリング記録が見つかりませんでした');
+                window.location.href = '/monitorings';
+            } else {
+                alert('モニタリング情報の取得に失敗しました');
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        } finally {
+            document.getElementById('loading').classList.add('d-none');
+            document.getElementById('monitoring-detail').classList.remove('d-none');
+        }
+    }
+
+    async function displayMonitoringDetail(monitoring) {
+        // 利用者情報を取得
+        try {
+            const userResponse = await fetch(`/api/users/${monitoring.user_id}`);
+            if (userResponse.ok) {
+                const user = await userResponse.json();
+                document.getElementById('detail-user-name').textContent = user.name;
+            } else {
+                document.getElementById('detail-user-name').textContent = `利用者ID: ${monitoring.user_id}`;
+            }
+        } catch (e) {
+            document.getElementById('detail-user-name').textContent = `利用者ID: ${monitoring.user_id}`;
+        }
+        document.getElementById('detail-user-link').href = `/users/${monitoring.user_id}`;
+
+        // 計画情報を取得
+        if (monitoring.plan_id) {
+            try {
+                const planResponse = await fetch(`/api/plans/${monitoring.plan_id}`);
+                if (planResponse.ok) {
+                    const plan = await planResponse.json();
+                    document.getElementById('detail-plan-number').textContent = plan.plan_number || `計画ID: ${monitoring.plan_id}`;
+                    document.getElementById('detail-plan-link').href = `/plans/${monitoring.plan_id}`;
+                } else {
+                    document.getElementById('detail-plan-number').textContent = `計画ID: ${monitoring.plan_id}`;
+                    document.getElementById('detail-plan-link').href = `/plans/${monitoring.plan_id}`;
+                }
+            } catch (e) {
+                document.getElementById('detail-plan-number').textContent = `計画ID: ${monitoring.plan_id}`;
+                document.getElementById('detail-plan-link').href = `/plans/${monitoring.plan_id}`;
+            }
+        } else {
+            document.getElementById('detail-plan-link').innerHTML = '<span class="text-muted">-</span>';
+        }
+
+        // 基本情報
+        document.getElementById('detail-monitoring-type').textContent = monitoring.monitoring_type || '-';
+        document.getElementById('detail-monitoring-date').textContent = new Date(monitoring.monitoring_date).toLocaleDateString('ja-JP');
+
+        // スタッフ情報を取得
+        try {
+            const staffResponse = await fetch(`/api/staffs/${monitoring.staff_id}`);
+            if (staffResponse.ok) {
+                const staff = await staffResponse.json();
+                document.getElementById('detail-staff').textContent = staff.name;
+            } else {
+                document.getElementById('detail-staff').textContent = `スタッフID: ${monitoring.staff_id}`;
+            }
+        } catch (e) {
+            document.getElementById('detail-staff').textContent = `スタッフID: ${monitoring.staff_id}`;
+        }
+
+        const nextDate = document.getElementById('detail-next-date');
+        if (monitoring.next_monitoring_date) {
+            const date = new Date(monitoring.next_monitoring_date);
+            const isOverdue = new Date() > date;
+            nextDate.innerHTML = `<span class="${isOverdue ? 'text-danger fw-bold' : ''}">
+                ${date.toLocaleDateString('ja-JP')}
+                ${isOverdue ? '<i class="bi bi-exclamation-triangle"></i> 期限超過' : ''}
+            </span>`;
+        } else {
+            nextDate.textContent = '-';
+        }
+
+        // モニタリング内容
+        const serviceUsage = document.getElementById('detail-service-usage');
+        if (monitoring.service_usage_status) {
+            serviceUsage.innerHTML = `<p class="mb-0 white-space-pre-wrap">${monitoring.service_usage_status}</p>`;
+        } else {
+            serviceUsage.innerHTML = '<p class="text-muted mb-0">記載なし</p>';
+        }
+
+        const goalAchievement = document.getElementById('detail-goal-achievement');
+        if (monitoring.goal_achievement) {
+            goalAchievement.innerHTML = `<p class="mb-0 white-space-pre-wrap">${monitoring.goal_achievement}</p>`;
+        } else {
+            goalAchievement.innerHTML = '<p class="text-muted mb-0">記載なし</p>';
+        }
+
+        const satisfaction = document.getElementById('detail-satisfaction');
+        satisfaction.innerHTML = `<p class="mb-0">${monitoring.satisfaction || '未評価'}</p>`;
+
+        const planRevision = document.getElementById('detail-plan-revision');
+        planRevision.innerHTML = `<p class="mb-0 ${monitoring.plan_revision_needed ? 'text-danger fw-bold' : ''}">
+            ${monitoring.plan_revision_needed ? '必要 <i class="bi bi-exclamation-triangle"></i>' : '不要'}
+        </p>`;
+
+        // 課題と今後の方針
+        const changesNeeds = document.getElementById('detail-changes-needs');
+        if (monitoring.changes_in_needs) {
+            changesNeeds.innerHTML = `<p class="mb-0 white-space-pre-wrap">${monitoring.changes_in_needs}</p>`;
+        } else {
+            changesNeeds.innerHTML = '<p class="text-muted mb-0">記載なし</p>';
+        }
+
+        const issues = document.getElementById('detail-issues');
+        if (monitoring.issues_and_concerns) {
+            issues.innerHTML = `<p class="mb-0 white-space-pre-wrap">${monitoring.issues_and_concerns}</p>`;
+        } else {
+            issues.innerHTML = '<p class="text-muted mb-0">記載なし</p>';
+        }
+
+        const futurePolicy = document.getElementById('detail-future-policy');
+        if (monitoring.future_policy) {
+            futurePolicy.innerHTML = `<p class="mb-0 white-space-pre-wrap">${monitoring.future_policy}</p>`;
+        } else {
+            futurePolicy.innerHTML = '<p class="text-muted mb-0">記載なし</p>';
+        }
+    }
+
+    function editMonitoring() {
+        window.location.href = `/monitorings/${monitoringId}/edit`;
+    }
+
+    async function downloadPDF() {
+        try {
+            const response = await fetch(`/api/monitorings/${monitoringId}/pdf`);
+            if (response.ok) {
+                const blob = await response.blob();
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = `モニタリング_${monitoringId}.pdf`;
+
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/);
+                    if (filenameMatch) {
+                        filename = decodeURIComponent(filenameMatch[1]);
+                    }
+                }
+
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                alert('PDF出力に失敗しました');
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            alert('PDF出力中にエラーが発生しました');
+        }
+    }
+
+    function deleteMonitoring() {
+        if (confirm('このモニタリング記録を削除してもよろしいですか?')) {
+            fetch(`/api/monitorings/${monitoringId}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('モニタリング記録を削除しました');
+                    window.location.href = '/monitorings';
+                } else {
+                    alert('削除に失敗しました');
+                }
+            })
+            .catch(error => {
+                console.error('エラー:', error);
+                alert('削除中にエラーが発生しました');
+            });
+        }
+    }
+</script>
+{% endblock %}

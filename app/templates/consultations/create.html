@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}相談記録新規作成 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/consultations">相談記録一覧</a></li>
+                <li class="breadcrumb-item active">新規作成</li>
+            </ol>
+        </nav>
+        <h1><i class="bi bi-chat-dots-fill"></i> 相談記録新規作成</h1>
+    </div>
+</div>
+
+<form id="consultationCreateForm">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> 相談情報</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <!-- 利用者選択 -->
+                <div class="col-md-6">
+                    <label for="user_id" class="form-label">利用者 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="user_id" name="user_id" required>
+                        <option value="">選択してください</option>
+                        {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 担当スタッフ -->
+                <div class="col-md-6">
+                    <label for="staff_id" class="form-label">担当スタッフ <span class="text-danger">*</span></label>
+                    <select class="form-select" id="staff_id" name="staff_id" required>
+                        <option value="">選択してください</option>
+                        {% for staff in staffs %}
+                        <option value="{{ staff.id }}">{{ staff.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 相談日 -->
+                <div class="col-md-6">
+                    <label for="consultation_date" class="form-label">相談日 <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="consultation_date" name="consultation_date" required>
+                </div>
+
+                <!-- 相談形態 -->
+                <div class="col-md-6">
+                    <label for="consultation_type" class="form-label">相談形態 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="consultation_type" name="consultation_type" required>
+                        <option value="">選択してください</option>
+                        <option value="来所">来所</option>
+                        <option value="訪問">訪問</option>
+                        <option value="電話">電話</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+
+                <!-- 相談内容 -->
+                <div class="col-12">
+                    <label for="content" class="form-label">相談内容 <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="content" name="content" rows="5" required></textarea>
+                    <small class="form-text text-muted">具体的な相談内容を記録してください</small>
+                </div>
+
+                <!-- 対応内容 -->
+                <div class="col-12">
+                    <label for="response" class="form-label">対応内容</label>
+                    <textarea class="form-control" id="response" name="response" rows="5"></textarea>
+                    <small class="form-text text-muted">どのように対応したかを記録してください（任意）</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between mb-5">
+        <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+            <i class="bi bi-x-circle"></i> キャンセル
+        </button>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i> 登録
+        </button>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        setDefaultDate();
+        checkUrlParams();
+        setDefaultStaff();
+    });
+
+    function setDefaultDate() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('consultation_date').value = today;
+    }
+
+    function checkUrlParams() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('user_id');
+        if (userId) {
+            document.getElementById('user_id').value = userId;
+        }
+    }
+
+    function setDefaultStaff() {
+        // 現在のログインユーザーを自動選択
+        const currentUser = getCurrentUser();
+        if (currentUser && currentUser.id) {
+            const staffSelect = document.getElementById('staff_id');
+            staffSelect.value = currentUser.id;
+        }
+    }
+
+    document.getElementById('consultationCreateForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+        const data = {
+            user_id: parseInt(formData.get('user_id')),
+            staff_id: parseInt(formData.get('staff_id')),
+            consultation_date: formData.get('consultation_date'),
+            consultation_type: formData.get('consultation_type'),
+            content: formData.get('content'),
+            response: formData.get('response') || null
+        };
+
+        try {
+            const response = await fetch('/api/consultations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                showSuccessMessage('相談記録を登録しました');
+                setTimeout(() => {
+                    window.location.href = '/consultations';
+                }, 1000);
+            } else {
+                const error = await response.json();
+                alert(`登録に失敗しました: ${error.detail || '不明なエラー'}`);
+            }
+        } catch (error) {
+            console.error('登録エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        }
+    });
+
+    function showSuccessMessage(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+    }
+</script>
+{% endblock %}

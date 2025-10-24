@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}スタッフ一覧 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/dashboard">ダッシュボード</a></li>
+                <li class="breadcrumb-item active">スタッフ一覧</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="bi bi-people-fill"></i> スタッフ一覧</h1>
+            <div id="admin-only-controls" style="display: none;">
+                <a href="/staffs/new" class="btn btn-primary">
+                    <i class="bi bi-person-plus"></i> 新規登録
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- スタッフ一覧テーブル -->
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-list-ul"></i> スタッフリスト</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="staffTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>ユーザー名</th>
+                        <th>氏名</th>
+                        <th>役割</th>
+                        <th>メールアドレス</th>
+                        <th>ステータス</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="staffTableBody">
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">読み込み中...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        await loadStaffList();
+        checkAdminRole();
+    });
+
+    function checkAdminRole() {
+        const currentUser = getCurrentUser();
+        if (currentUser && currentUser.role === 'admin') {
+            document.getElementById('admin-only-controls').style.display = 'block';
+        }
+    }
+
+    async function loadStaffList() {
+        try {
+            const response = await fetch('/api/staff', {
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error('スタッフ一覧の取得に失敗しました');
+            }
+
+            const staffList = await response.json();
+            const tbody = document.getElementById('staffTableBody');
+            tbody.innerHTML = '';
+
+            if (staffList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">スタッフが登録されていません</td></tr>';
+                return;
+            }
+
+            staffList.forEach(staff => {
+                const row = document.createElement('tr');
+
+                const roleBadge = staff.role === 'admin'
+                    ? '<span class="badge bg-danger">管理者</span>'
+                    : '<span class="badge bg-info">スタッフ</span>';
+
+                const statusBadge = staff.is_active
+                    ? '<span class="badge bg-success">有効</span>'
+                    : '<span class="badge bg-secondary">無効</span>';
+
+                const currentUser = getCurrentUser();
+                const isAdmin = currentUser && currentUser.role === 'admin';
+
+                row.innerHTML = `
+                    <td>${staff.id}</td>
+                    <td>${staff.username}</td>
+                    <td>${staff.name}</td>
+                    <td>${roleBadge}</td>
+                    <td>${staff.email || '<span class="text-muted">未設定</span>'}</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <a href="/staffs/${staff.id}" class="btn btn-sm btn-outline-primary" title="詳細">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        ${isAdmin ? `
+                            <a href="/staffs/${staff.id}/edit" class="btn btn-sm btn-outline-secondary" title="編集">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            ${currentUser.id !== staff.id ? `
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteStaff(${staff.id}, '${staff.name}')" title="削除">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            ` : ''}
+                        ` : ''}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+        } catch (error) {
+            console.error('エラー:', error);
+            const tbody = document.getElementById('staffTableBody');
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">データの取得に失敗しました</td></tr>';
+        }
+    }
+
+    async function deleteStaff(staffId, staffName) {
+        if (!confirm(`スタッフ「${staffName}」を削除してもよろしいですか？`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/staff/${staffId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                alert('スタッフを削除しました');
+                await loadStaffList();
+            } else {
+                const error = await response.json();
+                alert(`削除に失敗しました: ${error.detail || '不明なエラー'}`);
+            }
+        } catch (error) {
+            console.error('削除エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        }
+    }
+</script>
+{% endblock %}

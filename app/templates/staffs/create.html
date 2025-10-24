@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}スタッフ新規登録 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/dashboard">ダッシュボード</a></li>
+                <li class="breadcrumb-item"><a href="/staffs">スタッフ一覧</a></li>
+                <li class="breadcrumb-item active">新規登録</li>
+            </ol>
+        </nav>
+        <h1><i class="bi bi-person-plus"></i> スタッフ新規登録</h1>
+    </div>
+</div>
+
+<form id="staffCreateForm">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-info-circle"></i> アカウント情報</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <!-- ユーザー名 -->
+                <div class="col-md-6">
+                    <label for="username" class="form-label">ユーザー名 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="username" name="username" required
+                           pattern="^[a-zA-Z0-9_]{3,20}$"
+                           title="3〜20文字の英数字とアンダースコアのみ使用可能">
+                    <small class="form-text text-muted">ログイン時に使用します（3〜20文字、英数字とアンダースコアのみ）</small>
+                </div>
+
+                <!-- 氏名 -->
+                <div class="col-md-6">
+                    <label for="name" class="form-label">氏名 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="name" name="name" required>
+                    <small class="form-text text-muted">表示名として使用されます</small>
+                </div>
+
+                <!-- メールアドレス -->
+                <div class="col-md-6">
+                    <label for="email" class="form-label">メールアドレス</label>
+                    <input type="email" class="form-control" id="email" name="email">
+                    <small class="form-text text-muted">任意：通知などに使用</small>
+                </div>
+
+                <!-- 役割 -->
+                <div class="col-md-6">
+                    <label for="role" class="form-label">役割 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="role" name="role" required>
+                        <option value="">選択してください</option>
+                        <option value="staff">スタッフ</option>
+                        <option value="admin">管理者</option>
+                    </select>
+                    <small class="form-text text-muted">管理者はスタッフ管理など全機能にアクセス可能</small>
+                </div>
+
+                <!-- パスワード -->
+                <div class="col-md-6">
+                    <label for="password" class="form-label">パスワード <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="password" name="password" required
+                           minlength="8"
+                           title="8文字以上">
+                    <small class="form-text text-muted">8文字以上で設定してください</small>
+                </div>
+
+                <!-- パスワード確認 -->
+                <div class="col-md-6">
+                    <label for="password_confirm" class="form-label">パスワード確認 <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="password_confirm" name="password_confirm" required
+                           minlength="8">
+                    <small class="form-text text-muted">確認のため同じパスワードを入力</small>
+                </div>
+
+                <!-- ステータス -->
+                <div class="col-md-6">
+                    <label for="is_active" class="form-label">ステータス <span class="text-danger">*</span></label>
+                    <select class="form-select" id="is_active" name="is_active" required>
+                        <option value="true" selected>有効</option>
+                        <option value="false">無効</option>
+                    </select>
+                    <small class="form-text text-muted">無効にするとログインできなくなります</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between mb-5">
+        <a href="/staffs" class="btn btn-secondary">
+            <i class="bi bi-x-circle"></i> キャンセル
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i> 登録
+        </button>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        checkAdminRole();
+    });
+
+    function checkAdminRole() {
+        const currentUser = getCurrentUser();
+        if (!currentUser || currentUser.role !== 'admin') {
+            alert('この機能は管理者のみアクセス可能です');
+            window.location.href = '/dashboard';
+        }
+    }
+
+    document.getElementById('staffCreateForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+
+        // パスワード一致確認
+        const password = formData.get('password');
+        const passwordConfirm = formData.get('password_confirm');
+
+        if (password !== passwordConfirm) {
+            alert('パスワードが一致しません');
+            return;
+        }
+
+        const data = {
+            username: formData.get('username'),
+            name: formData.get('name'),
+            email: formData.get('email') || null,
+            password: password,
+            role: formData.get('role'),
+            is_active: formData.get('is_active') === 'true'
+        };
+
+        try {
+            const response = await fetch('/api/staff', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                showSuccessMessage('スタッフを登録しました');
+                setTimeout(() => {
+                    window.location.href = '/staffs';
+                }, 1000);
+            } else {
+                const error = await response.json();
+                alert(`登録に失敗しました: ${error.detail || '不明なエラー'}`);
+            }
+        } catch (error) {
+            console.error('登録エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        }
+    });
+
+    function showSuccessMessage(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+    }
+</script>
+{% endblock %}

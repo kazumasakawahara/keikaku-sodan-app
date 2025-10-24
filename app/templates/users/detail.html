@@ -1,0 +1,464 @@
+{% extends "base.html" %}
+
+{% block title %}利用者詳細 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/users">利用者一覧</a></li>
+                <li class="breadcrumb-item active">利用者詳細</li>
+            </ol>
+        </nav>
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 id="user-name">利用者詳細</h1>
+            <div class="btn-group">
+                <a href="/users/{{ user_id }}/network" class="btn btn-outline-primary">
+                    <i class="bi bi-diagram-3"></i> ネットワーク図
+                </a>
+                <button class="btn btn-outline-success" onclick="downloadPDF()">
+                    <i class="bi bi-file-pdf"></i> PDF出力
+                </button>
+                <button class="btn btn-outline-danger" onclick="deleteCurrentUser()">
+                    <i class="bi bi-trash"></i> 削除
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">読み込み中...</span>
+    </div>
+</div>
+
+<div id="user-detail" class="d-none">
+    <!-- 基本情報 -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-person"></i> 基本情報</h5>
+            <button class="btn btn-sm btn-light" onclick="editUser()">
+                <i class="bi bi-pencil"></i> 編集
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="40%">氏名</th>
+                            <td id="detail-name"></td>
+                        </tr>
+                        <tr>
+                            <th>氏名（カナ）</th>
+                            <td id="detail-name-kana"></td>
+                        </tr>
+                        <tr>
+                            <th>生年月日</th>
+                            <td id="detail-birth-date"></td>
+                        </tr>
+                        <tr>
+                            <th>年齢</th>
+                            <td id="detail-age"></td>
+                        </tr>
+                        <tr>
+                            <th>性別</th>
+                            <td id="detail-gender"></td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-sm">
+                        <tr>
+                            <th width="40%">郵便番号</th>
+                            <td id="detail-postal-code"></td>
+                        </tr>
+                        <tr>
+                            <th>住所</th>
+                            <td id="detail-address"></td>
+                        </tr>
+                        <tr>
+                            <th>電話番号</th>
+                            <td id="detail-phone"></td>
+                        </tr>
+                        <tr>
+                            <th>メールアドレス</th>
+                            <td id="detail-email"></td>
+                        </tr>
+                        <tr>
+                            <th>担当スタッフ</th>
+                            <td id="detail-staff"></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 手帳情報 -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="bi bi-card-list"></i> 手帳情報</h5>
+        </div>
+        <div class="card-body">
+            <div id="notebooks-list">
+                <p class="text-muted">読み込み中...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 障害支援区分 -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0"><i class="bi bi-shield-check"></i> 障害支援区分</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm">
+                <tr>
+                    <th width="30%">障害支援区分</th>
+                    <td id="detail-support-level"></td>
+                </tr>
+                <tr>
+                    <th>認定日</th>
+                    <td id="detail-certified-date"></td>
+                </tr>
+                <tr>
+                    <th>有効期限</th>
+                    <td id="detail-expiry-date"></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- 相談記録 -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-chat-dots"></i> 相談記録</h5>
+            <div class="btn-group">
+                <button class="btn btn-sm btn-light" onclick="addConsultation()">
+                    <i class="bi bi-plus"></i> 新規記録
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="consultations-list">
+                <p class="text-muted">読み込み中...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ネットワーク図（エコマップ） -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-diagram-3"></i> ネットワーク図（エコマップ）</h5>
+            <div class="btn-group">
+                <a href="/users/{{ user_id }}/network" class="btn btn-sm btn-light">
+                    <i class="bi bi-arrows-fullscreen"></i> 全画面表示
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="network-preview" style="min-height: 300px;">
+                <p class="text-muted text-center py-5">読み込み中...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- アクションボタン -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="bi bi-lightning"></i> クイックアクション</h5>
+        </div>
+        <div class="card-body">
+            <div class="d-grid gap-2 d-md-flex">
+                <button class="btn btn-primary" onclick="addPlan()">
+                    <i class="bi bi-file-earmark-plus"></i> 新規計画作成
+                </button>
+                <button class="btn btn-info" onclick="addMonitoring()">
+                    <i class="bi bi-clipboard-plus"></i> 新規モニタリング作成
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const userId = {{ user_id }};
+    let userData = null;
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        await loadUserDetail();
+        await loadNotebooks();
+        await loadConsultations();
+        await loadNetworkPreview();
+    });
+
+    async function loadUserDetail() {
+        try {
+            const response = await fetch(`/api/users/${userId}`);
+            if (response.ok) {
+                userData = await response.json();
+                displayUserDetail(userData);
+            } else if (response.status === 404) {
+                alert('利用者が見つかりませんでした');
+                window.location.href = '/users';
+            } else {
+                alert('利用者情報の取得に失敗しました');
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        } finally {
+            document.getElementById('loading').classList.add('d-none');
+            document.getElementById('user-detail').classList.remove('d-none');
+        }
+    }
+
+    function displayUserDetail(user) {
+        document.getElementById('user-name').textContent = user.name;
+        document.getElementById('detail-name').textContent = user.name;
+        document.getElementById('detail-name-kana').textContent = user.name_kana || '-';
+        document.getElementById('detail-birth-date').textContent = user.birth_date ? new Date(user.birth_date).toLocaleDateString('ja-JP') : '-';
+        document.getElementById('detail-age').textContent = user.age !== null ? user.age + '歳' : '-';
+        document.getElementById('detail-gender').textContent = user.gender || '-';
+        document.getElementById('detail-postal-code').textContent = user.postal_code || '-';
+        document.getElementById('detail-address').textContent = user.address || '-';
+        document.getElementById('detail-phone').textContent = user.phone || '-';
+        document.getElementById('detail-email').textContent = user.email || '-';
+        document.getElementById('detail-staff').textContent = user.assigned_staff_id ? `スタッフID: ${user.assigned_staff_id}` : '-';
+        document.getElementById('detail-support-level').textContent = user.disability_support_level ? `区分${user.disability_support_level}` : '-';
+        document.getElementById('detail-certified-date').textContent = user.disability_support_certified_date ? new Date(user.disability_support_certified_date).toLocaleDateString('ja-JP') : '-';
+        document.getElementById('detail-expiry-date').textContent = user.disability_support_expiry_date ? new Date(user.disability_support_expiry_date).toLocaleDateString('ja-JP') : '-';
+    }
+
+    async function loadNotebooks() {
+        try {
+            const response = await fetch(`/api/users/${userId}/notebooks`);
+            if (response.ok) {
+                const notebooks = await response.json();
+                const listDiv = document.getElementById('notebooks-list');
+
+                if (notebooks.length === 0) {
+                    listDiv.innerHTML = '<p class="text-muted">手帳情報が登録されていません</p>';
+                    return;
+                }
+
+                listDiv.innerHTML = `
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>種別</th>
+                                <th>等級・程度</th>
+                                <th>交付日</th>
+                                <th>更新日</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${notebooks.map(nb => `
+                                <tr>
+                                    <td>${nb.notebook_type}</td>
+                                    <td>${nb.grade || '-'}</td>
+                                    <td>${nb.issue_date ? new Date(nb.issue_date).toLocaleDateString('ja-JP') : '-'}</td>
+                                    <td>${nb.renewal_date ? new Date(nb.renewal_date).toLocaleDateString('ja-JP') : '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+        }
+    }
+
+    async function loadConsultations() {
+        try {
+            const response = await fetch(`/api/consultations?user_id=${userId}&limit=10`);
+            if (response.ok) {
+                const consultations = await response.json();
+                const listDiv = document.getElementById('consultations-list');
+
+                if (consultations.length === 0) {
+                    listDiv.innerHTML = '<p class="text-muted">相談記録がありません</p>';
+                    return;
+                }
+
+                listDiv.innerHTML = consultations.map(c => `
+                    <div class="card mb-2">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <h6>${new Date(c.consultation_date).toLocaleDateString('ja-JP')} - ${c.consultation_type}</h6>
+                                <small class="text-muted">スタッフID: ${c.staff_id}</small>
+                            </div>
+                            <p class="mb-1"><strong>相談内容:</strong> ${c.content}</p>
+                            ${c.response ? `<p class="mb-0 text-muted"><strong>対応:</strong> ${c.response}</p>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+        }
+    }
+
+    function editUser() {
+        window.location.href = `/users/${userId}/edit`;
+    }
+
+    function addConsultation() {
+        window.location.href = `/consultations/new?user_id=${userId}`;
+    }
+
+    function addPlan() {
+        window.location.href = `/plans/new?user_id=${userId}`;
+    }
+
+    function addMonitoring() {
+        window.location.href = `/monitorings/new?user_id=${userId}`;
+    }
+
+    function deleteCurrentUser() {
+        if (userData) {
+            confirmDelete('users', userId, userData.name, '/users');
+        }
+    }
+
+    async function downloadPDF() {
+        try {
+            const response = await fetch(`/api/users/${userId}/pdf`);
+            if (response.ok) {
+                // PDFをBlobとして取得
+                const blob = await response.blob();
+
+                // Content-Dispositionヘッダーからファイル名を取得
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = `利用者情報_${userId}.pdf`;
+
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/);
+                    if (filenameMatch) {
+                        filename = decodeURIComponent(filenameMatch[1]);
+                    }
+                }
+
+                // ダウンロードリンクを作成
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+
+                // クリーンアップ
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            } else {
+                alert('PDF出力に失敗しました');
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            alert('PDF出力中にエラーが発生しました');
+        }
+    }
+
+    async function loadNetworkPreview() {
+        try {
+            const response = await fetch(`/api/network/users/${userId}/network`);
+            if (!response.ok) {
+                throw new Error('ネットワークデータの取得に失敗しました');
+            }
+
+            const networkData = await response.json();
+            const container = document.getElementById('network-preview');
+
+            // コンテナをクリア
+            container.innerHTML = '';
+
+            // ネットワーク図の要約を表示
+            const nodes = networkData.nodes || [];
+            const edges = networkData.edges || [];
+
+            if (nodes.length <= 1) {
+                container.innerHTML = '<p class="text-muted text-center py-3">関係機関が登録されていません</p>';
+                return;
+            }
+
+            // 簡易的なサマリー表示
+            let html = '<div class="row g-3">';
+
+            // 統計情報
+            html += '<div class="col-12">';
+            html += '<div class="alert alert-info mb-3">';
+            html += `<strong><i class="bi bi-info-circle"></i> ネットワーク概要:</strong> `;
+            html += `利用者を中心に ${nodes.length - 1} 件の関係機関・人物が登録されています。`;
+            html += '</div>';
+            html += '</div>';
+
+            // 関係者リスト
+            html += '<div class="col-12">';
+            html += '<h6 class="mb-3">関係機関・関係者一覧</h6>';
+            html += '<div class="row g-2">';
+
+            for (const node of nodes) {
+                if (node.type === 'user') continue; // 利用者自身はスキップ
+
+                let iconClass = 'bi-building';
+                let bgClass = 'bg-secondary';
+
+                if (node.type === 'service') {
+                    iconClass = 'bi-heart-pulse';
+                    bgClass = 'bg-primary';
+                } else if (node.type === 'medical') {
+                    iconClass = 'bi-hospital';
+                    bgClass = 'bg-danger';
+                } else if (node.type === 'guardian') {
+                    iconClass = 'bi-shield-check';
+                    bgClass = 'bg-warning';
+                } else if (node.type === 'staff') {
+                    iconClass = 'bi-person-badge';
+                    bgClass = 'bg-success';
+                }
+
+                html += '<div class="col-md-6 col-lg-4">';
+                html += '<div class="card border-0 shadow-sm h-100">';
+                html += '<div class="card-body p-3">';
+                html += `<div class="d-flex align-items-center">`;
+                html += `<div class="flex-shrink-0 ${bgClass} text-white rounded p-2 me-3">`;
+                html += `<i class="bi ${iconClass}"></i>`;
+                html += `</div>`;
+                html += `<div class="flex-grow-1">`;
+                html += `<h6 class="mb-0">${node.label}</h6>`;
+                if (node.data) {
+                    if (node.data.relationship_type) {
+                        html += `<small class="text-muted">${node.data.relationship_type}</small>`;
+                    }
+                    if (node.data.frequency) {
+                        html += `<br><small class="badge bg-light text-dark">${node.data.frequency}</small>`;
+                    }
+                }
+                html += `</div>`;
+                html += `</div>`;
+                html += '</div>';
+                html += '</div>';
+                html += '</div>';
+            }
+
+            html += '</div>'; // row g-2
+            html += '</div>'; // col-12
+            html += '</div>'; // row g-3
+
+            container.innerHTML = html;
+        } catch (error) {
+            console.error('エラー:', error);
+            const container = document.getElementById('network-preview');
+            container.innerHTML = '<p class="text-danger text-center py-3">ネットワーク図の読み込みに失敗しました</p>';
+        }
+    }
+</script>
+{% endblock %}

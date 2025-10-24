@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}相談記録編集 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/consultations">相談記録一覧</a></li>
+                <li class="breadcrumb-item active">編集</li>
+            </ol>
+        </nav>
+        <h1><i class="bi bi-pencil-square"></i> 相談記録編集</h1>
+    </div>
+</div>
+
+<div id="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">読み込み中...</span>
+    </div>
+</div>
+
+<div id="edit-form-container" class="d-none">
+    <form id="consultationEditForm">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> 相談情報</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <!-- 利用者（表示のみ） -->
+                    <div class="col-md-6">
+                        <label class="form-label">利用者</label>
+                        <input type="text" class="form-control" id="user_name" readonly>
+                    </div>
+
+                    <!-- 担当スタッフ -->
+                    <div class="col-md-6">
+                        <label for="staff_id" class="form-label">担当スタッフ <span class="text-danger">*</span></label>
+                        <select class="form-select" id="staff_id" name="staff_id" required>
+                            <option value="">選択してください</option>
+                        </select>
+                    </div>
+
+                    <!-- 相談日 -->
+                    <div class="col-md-6">
+                        <label for="consultation_date" class="form-label">相談日 <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="consultation_date" name="consultation_date" required>
+                    </div>
+
+                    <!-- 相談形態 -->
+                    <div class="col-md-6">
+                        <label for="consultation_type" class="form-label">相談形態 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="consultation_type" name="consultation_type" required>
+                            <option value="">選択してください</option>
+                            <option value="来所">来所</option>
+                            <option value="訪問">訪問</option>
+                            <option value="電話">電話</option>
+                            <option value="その他">その他</option>
+                        </select>
+                    </div>
+
+                    <!-- 相談内容 -->
+                    <div class="col-12">
+                        <label for="content" class="form-label">相談内容 <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="content" name="content" rows="5" required></textarea>
+                    </div>
+
+                    <!-- 対応内容 -->
+                    <div class="col-12">
+                        <label for="response" class="form-label">対応内容</label>
+                        <textarea class="form-control" id="response" name="response" rows="5"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between mb-5">
+            <button type="button" class="btn btn-secondary" onclick="window.location.href='/consultations'">
+                <i class="bi bi-x-circle"></i> キャンセル
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> 更新
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const consultationId = {{ consultation_id }};
+    let consultationData = null;
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        await loadStaffList();
+        await loadConsultationData();
+    });
+
+    async function loadStaffList() {
+        try {
+            const response = await fetch('/api/staff');
+            if (response.ok) {
+                const staffList = await response.json();
+                const select = document.getElementById('staff_id');
+
+                staffList.forEach(staff => {
+                    const option = document.createElement('option');
+                    option.value = staff.id;
+                    option.textContent = staff.name;
+                    select.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('スタッフ一覧の取得に失敗:', error);
+        }
+    }
+
+    async function loadConsultationData() {
+        try {
+            const response = await fetch(`/api/consultations/${consultationId}`);
+            if (response.ok) {
+                consultationData = await response.json();
+
+                // 利用者名を取得
+                const userResponse = await fetch(`/api/users/${consultationData.user_id}`);
+                if (userResponse.ok) {
+                    const user = await userResponse.json();
+                    document.getElementById('user_name').value = user.name;
+                }
+
+                // フォームにデータを設定
+                document.getElementById('staff_id').value = consultationData.staff_id;
+                document.getElementById('consultation_date').value = consultationData.consultation_date;
+                document.getElementById('consultation_type').value = consultationData.consultation_type;
+                document.getElementById('content').value = consultationData.content || '';
+                document.getElementById('response').value = consultationData.response || '';
+
+                document.getElementById('loading').classList.add('d-none');
+                document.getElementById('edit-form-container').classList.remove('d-none');
+            } else if (response.status === 404) {
+                alert('相談記録が見つかりませんでした');
+                window.location.href = '/consultations';
+            }
+        } catch (error) {
+            console.error('相談記録の取得に失敗:', error);
+            alert('サーバーとの通信に失敗しました');
+        }
+    }
+
+    document.getElementById('consultationEditForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+        const data = {
+            consultation_date: formData.get('consultation_date'),
+            consultation_type: formData.get('consultation_type'),
+            content: formData.get('content'),
+            response: formData.get('response') || null
+        };
+
+        try {
+            const response = await fetch(`/api/consultations/${consultationId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                showSuccessMessage('相談記録を更新しました');
+                setTimeout(() => {
+                    window.location.href = '/consultations';
+                }, 1000);
+            } else {
+                const error = await response.json();
+                alert(`更新に失敗しました: ${error.detail || '不明なエラー'}`);
+            }
+        } catch (error) {
+            console.error('更新エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        }
+    });
+
+    function showSuccessMessage(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+    }
+</script>
+{% endblock %}

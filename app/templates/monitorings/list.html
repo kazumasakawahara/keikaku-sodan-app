@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}モニタリング一覧 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="bi bi-clipboard-check"></i> モニタリング記録一覧</h1>
+            <a href="/monitorings/new" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> 新規作成
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- モニタリング一覧テーブル -->
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>記録ID</th>
+                        <th>利用者名</th>
+                        <th>実施日</th>
+                        <th>実施スタッフ</th>
+                        <th>次回予定日</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="monitorings-table-body">
+                    <tr>
+                        <td colspan="6" class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">読み込み中...</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ページネーション -->
+        <div id="pagination" class="mt-3"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        await loadMonitorings();
+    });
+
+    async function loadMonitorings() {
+        try {
+            const response = await fetch('/api/monitorings?limit=50');
+            if (response.ok) {
+                const monitorings = await response.json();
+                await displayMonitorings(monitorings);
+            } else {
+                alert('モニタリングデータの取得に失敗しました');
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        }
+    }
+
+    async function displayMonitorings(monitorings) {
+        const tbody = document.getElementById('monitorings-table-body');
+
+        if (monitorings.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-muted">
+                        モニタリング記録がまだ登録されていません
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        // 利用者情報とスタッフ情報を並行取得
+        const userIds = [...new Set(monitorings.map(m => m.user_id))];
+        const staffIds = [...new Set(monitorings.map(m => m.staff_id))];
+
+        const usersMap = {};
+        const staffMap = {};
+
+        await Promise.all([
+            ...userIds.map(async id => {
+                try {
+                    const res = await fetch(`/api/users/${id}`);
+                    if (res.ok) usersMap[id] = await res.json();
+                } catch (e) {
+                    console.error('利用者情報の取得に失敗:', id, e);
+                }
+            }),
+            ...staffIds.map(async id => {
+                try {
+                    const res = await fetch(`/api/staffs/${id}`);
+                    if (res.ok) staffMap[id] = await res.json();
+                } catch (e) {
+                    console.error('スタッフ情報の取得に失敗:', id, e);
+                }
+            })
+        ]);
+
+        tbody.innerHTML = monitorings.map(monitoring => {
+            const user = usersMap[monitoring.user_id];
+            const staff = staffMap[monitoring.staff_id];
+            const userName = user ? user.name : `利用者ID: ${monitoring.user_id}`;
+            const staffName = staff ? staff.name : `スタッフID: ${monitoring.staff_id}`;
+
+            // 次回予定日の表示（期限超過の場合は赤文字）
+            let nextDateHtml = '-';
+            if (monitoring.next_monitoring_date) {
+                const nextDate = new Date(monitoring.next_monitoring_date);
+                const isOverdue = new Date() > nextDate;
+                nextDateHtml = `<span class="${isOverdue ? 'text-danger fw-bold' : ''}">
+                    ${nextDate.toLocaleDateString('ja-JP')}
+                    ${isOverdue ? '<i class="bi bi-exclamation-triangle"></i>' : ''}
+                </span>`;
+            }
+
+            return `
+                <tr>
+                    <td>${monitoring.id}</td>
+                    <td>
+                        <a href="/users/${monitoring.user_id}" class="text-decoration-none">
+                            ${userName}
+                        </a>
+                    </td>
+                    <td>${new Date(monitoring.monitoring_date).toLocaleDateString('ja-JP')}</td>
+                    <td>${staffName}</td>
+                    <td>${nextDateHtml}</td>
+                    <td>
+                        <a href="/monitorings/${monitoring.id}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i> 詳細
+                        </a>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+</script>
+{% endblock %}

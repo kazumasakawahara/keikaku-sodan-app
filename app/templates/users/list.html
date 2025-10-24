@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}利用者一覧 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="bi bi-people"></i> 利用者一覧</h1>
+            <a href="/users/new" class="btn btn-success">
+                <i class="bi bi-person-plus"></i> 新規登録
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- 検索エリア -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="bi bi-search"></i> 検索条件</h6>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" onclick="toggleAdvancedSearch()">
+                        <i class="bi bi-funnel"></i> 詳細検索
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- 簡易検索 -->
+                <div style="position: relative;">
+                    <form id="simple-search-form" onsubmit="handleAdvancedSearch(event)">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" name="search" placeholder="氏名またはカナで検索（例: たなか、田中）" autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="off">
+                            <button class="btn btn-primary" type="submit">検索</button>
+                            <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">クリア</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 高度な検索フォーム（折りたたみ） -->
+                <div class="collapse mt-3" id="advanced-search-collapse">
+                    <hr>
+                    <form id="advanced-search-form" onsubmit="handleAdvancedSearch(event)">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="name" class="form-label small">氏名</label>
+                                <input type="text" class="form-control" id="name" name="name">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="name_kana" class="form-label small">氏名（カナ）</label>
+                                <input type="text" class="form-control" id="name_kana" name="name_kana">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="gender" class="form-label small">性別</label>
+                                <select class="form-select" id="gender" name="gender">
+                                    <option value="">すべて</option>
+                                    <option value="男性">男性</option>
+                                    <option value="女性">女性</option>
+                                    <option value="その他">その他</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="min_age" class="form-label small">年齢（最小）</label>
+                                <input type="number" class="form-control" id="min_age" name="min_age" min="0" max="150">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="max_age" class="form-label small">年齢（最大）</label>
+                                <input type="number" class="form-control" id="max_age" name="max_age" min="0" max="150">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="disability_support_level" class="form-label small">障害支援区分</label>
+                                <select class="form-select" id="disability_support_level" name="disability_support_level">
+                                    <option value="">すべて</option>
+                                    <option value="1">区分1</option>
+                                    <option value="2">区分2</option>
+                                    <option value="3">区分3</option>
+                                    <option value="4">区分4</option>
+                                    <option value="5">区分5</option>
+                                    <option value="6">区分6</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="has_guardian" class="form-label small">後見人</label>
+                                <select class="form-select" id="has_guardian" name="has_guardian">
+                                    <option value="">すべて</option>
+                                    <option value="true">あり</option>
+                                    <option value="false">なし</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <button class="btn btn-primary" type="submit">
+                                    <i class="bi bi-search"></i> 検索実行
+                                </button>
+                                <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">
+                                    <i class="bi bi-x-circle"></i> 条件クリア
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 利用者一覧テーブル -->
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th style="cursor: pointer;" onclick="handleSort('id')" data-sort="id">
+                            ID <i class="sort-icon bi bi-arrow-down-up"></i>
+                        </th>
+                        <th style="cursor: pointer;" onclick="handleSort('name')" data-sort="name">
+                            氏名 <i class="sort-icon bi bi-arrow-down-up"></i>
+                        </th>
+                        <th>氏名（カナ）</th>
+                        <th style="cursor: pointer;" onclick="handleSort('age')" data-sort="age">
+                            年齢 <i class="sort-icon bi bi-arrow-down-up"></i>
+                        </th>
+                        <th>障害支援区分</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table-body">
+                    <tr>
+                        <td colspan="6" class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">読み込み中...</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ページネーション -->
+        <div id="pagination" class="mt-3"></div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/advanced-search.js"></script>
+<script>
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        await loadUsers();
+    });
+
+    // 簡易検索フォームと高度な検索フォームを統合
+    document.getElementById('simple-search-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        handleAdvancedSearch(e);
+    });
+</script>
+{% endblock %}

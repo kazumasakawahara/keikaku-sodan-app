@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}モニタリング編集 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/monitorings">モニタリング一覧</a></li>
+                <li class="breadcrumb-item"><a href="/monitorings/{{ monitoring_id }}">モニタリング詳細</a></li>
+                <li class="breadcrumb-item active">編集</li>
+            </ol>
+        </nav>
+        <h1><i class="bi bi-clipboard-data"></i> モニタリング記録編集</h1>
+    </div>
+</div>
+
+<div id="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">読み込み中...</span>
+    </div>
+</div>
+
+<div id="edit-form-container" class="d-none">
+    <form id="monitoringEditForm">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> 基本情報</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <!-- 利用者（表示のみ） -->
+                    <div class="col-md-6">
+                        <label class="form-label">利用者</label>
+                        <input type="text" class="form-control" id="user_name" readonly>
+                    </div>
+
+                    <!-- 対応計画（表示のみ） -->
+                    <div class="col-md-6">
+                        <label class="form-label">対応計画</label>
+                        <input type="text" class="form-control" id="plan_number" readonly>
+                    </div>
+
+                    <!-- モニタリング日 -->
+                    <div class="col-md-6">
+                        <label for="monitoring_date" class="form-label">モニタリング日 <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="monitoring_date" name="monitoring_date" required>
+                    </div>
+
+                    <!-- モニタリング種別 -->
+                    <div class="col-md-6">
+                        <label for="monitoring_type" class="form-label">モニタリング種別 <span class="text-danger">*</span></label>
+                        <select class="form-select" id="monitoring_type" name="monitoring_type" required>
+                            <option value="">選択してください</option>
+                            <option value="定期">定期</option>
+                            <option value="随時">随時</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="bi bi-clipboard-check"></i> モニタリング内容</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <!-- サービス利用状況 -->
+                    <div class="col-12">
+                        <label for="service_usage_status" class="form-label">サービス利用状況</label>
+                        <textarea class="form-control" id="service_usage_status" name="service_usage_status" rows="4"></textarea>
+                        <small class="form-text text-muted">計画通りにサービスが提供されているか記録してください</small>
+                    </div>
+
+                    <!-- 目標達成状況 -->
+                    <div class="col-12">
+                        <label for="goal_achievement" class="form-label">目標達成状況</label>
+                        <textarea class="form-control" id="goal_achievement" name="goal_achievement" rows="4"></textarea>
+                        <small class="form-text text-muted">短期目標・長期目標の達成度を記録してください</small>
+                    </div>
+
+                    <!-- 満足度 -->
+                    <div class="col-md-6">
+                        <label for="satisfaction" class="form-label">満足度</label>
+                        <select class="form-select" id="satisfaction" name="satisfaction">
+                            <option value="">未評価</option>
+                            <option value="満足">満足</option>
+                            <option value="やや満足">やや満足</option>
+                            <option value="普通">普通</option>
+                            <option value="やや不満">やや不満</option>
+                            <option value="不満">不満</option>
+                        </select>
+                    </div>
+
+                    <!-- 次回モニタリング予定日 -->
+                    <div class="col-md-6">
+                        <label for="next_monitoring_date" class="form-label">次回モニタリング予定日</label>
+                        <input type="date" class="form-control" id="next_monitoring_date" name="next_monitoring_date">
+                    </div>
+
+                    <!-- ニーズの変化 -->
+                    <div class="col-12">
+                        <label for="changes_in_needs" class="form-label">ニーズの変化</label>
+                        <textarea class="form-control" id="changes_in_needs" name="changes_in_needs" rows="3"></textarea>
+                        <small class="form-text text-muted">利用者のニーズに変化があれば記録してください</small>
+                    </div>
+
+                    <!-- 課題・問題点 -->
+                    <div class="col-12">
+                        <label for="issues_and_concerns" class="form-label">課題・問題点</label>
+                        <textarea class="form-control" id="issues_and_concerns" name="issues_and_concerns" rows="3"></textarea>
+                        <small class="form-text text-muted">現在の課題や問題点を記録してください</small>
+                    </div>
+
+                    <!-- 計画変更の必要性 -->
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="plan_revision_needed" name="plan_revision_needed">
+                            <label class="form-check-label" for="plan_revision_needed">
+                                計画変更が必要
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 今後の方針 -->
+                    <div class="col-12">
+                        <label for="future_policy" class="form-label">今後の方針</label>
+                        <textarea class="form-control" id="future_policy" name="future_policy" rows="4"></textarea>
+                        <small class="form-text text-muted">今後の支援方針や改善点を記録してください</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between mb-5">
+            <button type="button" class="btn btn-secondary" onclick="window.location.href='/monitorings/{{ monitoring_id }}'">
+                <i class="bi bi-x-circle"></i> キャンセル
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle"></i> 更新
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const monitoringId = {{ monitoring_id }};
+    let monitoringData = null;
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        await loadMonitoringData();
+    });
+
+    async function loadMonitoringData() {
+        try {
+            const response = await fetch(`/api/monitorings/${monitoringId}`);
+            if (response.ok) {
+                monitoringData = await response.json();
+
+                // 利用者名を取得
+                const userResponse = await fetch(`/api/users/${monitoringData.user_id}`);
+                if (userResponse.ok) {
+                    const user = await userResponse.json();
+                    document.getElementById('user_name').value = user.name;
+                }
+
+                // 計画情報を取得
+                const planResponse = await fetch(`/api/plans/${monitoringData.plan_id}`);
+                if (planResponse.ok) {
+                    const plan = await planResponse.json();
+                    document.getElementById('plan_number').value = plan.plan_number;
+                }
+
+                // フォームにデータを設定
+                document.getElementById('monitoring_date').value = monitoringData.monitoring_date || '';
+                document.getElementById('monitoring_type').value = monitoringData.monitoring_type || '';
+                document.getElementById('service_usage_status').value = monitoringData.service_usage_status || '';
+                document.getElementById('goal_achievement').value = monitoringData.goal_achievement || '';
+                document.getElementById('satisfaction').value = monitoringData.satisfaction || '';
+                document.getElementById('next_monitoring_date').value = monitoringData.next_monitoring_date || '';
+                document.getElementById('changes_in_needs').value = monitoringData.changes_in_needs || '';
+                document.getElementById('issues_and_concerns').value = monitoringData.issues_and_concerns || '';
+                document.getElementById('plan_revision_needed').checked = monitoringData.plan_revision_needed || false;
+                document.getElementById('future_policy').value = monitoringData.future_policy || '';
+
+                document.getElementById('loading').classList.add('d-none');
+                document.getElementById('edit-form-container').classList.remove('d-none');
+            } else if (response.status === 404) {
+                alert('モニタリング記録が見つかりませんでした');
+                window.location.href = '/monitorings';
+            }
+        } catch (error) {
+            console.error('モニタリング記録の取得に失敗:', error);
+            alert('サーバーとの通信に失敗しました');
+        }
+    }
+
+    document.getElementById('monitoringEditForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+        const data = {
+            monitoring_date: formData.get('monitoring_date'),
+            monitoring_type: formData.get('monitoring_type'),
+            service_usage_status: formData.get('service_usage_status') || null,
+            goal_achievement: formData.get('goal_achievement') || null,
+            satisfaction: formData.get('satisfaction') || null,
+            next_monitoring_date: formData.get('next_monitoring_date') || null,
+            changes_in_needs: formData.get('changes_in_needs') || null,
+            issues_and_concerns: formData.get('issues_and_concerns') || null,
+            plan_revision_needed: document.getElementById('plan_revision_needed').checked,
+            future_policy: formData.get('future_policy') || null
+        };
+
+        try {
+            const response = await fetch(`/api/monitorings/${monitoringId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                showSuccessMessage('モニタリング記録を更新しました');
+                setTimeout(() => {
+                    window.location.href = `/monitorings/${monitoringId}`;
+                }, 1000);
+            } else {
+                const error = await response.json();
+                alert(`更新に失敗しました: ${error.detail || '不明なエラー'}`);
+            }
+        } catch (error) {
+            console.error('更新エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        }
+    });
+
+    function showSuccessMessage(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+    }
+</script>
+{% endblock %}

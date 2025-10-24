@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}新規計画作成 - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/plans">計画一覧</a></li>
+                <li class="breadcrumb-item active">新規作成</li>
+            </ol>
+        </nav>
+        <h1><i class="bi bi-plus-circle"></i> 新規計画作成</h1>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form id="create-plan-form">
+            <!-- 基本情報 -->
+            <h5 class="mb-3">基本情報</h5>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="user_id" class="form-label">利用者 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="user_id" required>
+                        <option value="">選択してください</option>
+                        {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="staff_id" class="form-label">担当スタッフ <span class="text-danger">*</span></label>
+                    <select class="form-select" id="staff_id" required>
+                        <option value="">選択してください</option>
+                        {% for staff in staffs %}
+                        <option value="{{ staff.id }}">{{ staff.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="plan_type" class="form-label">計画種別 <span class="text-danger">*</span></label>
+                    <select class="form-select" id="plan_type" required>
+                        <option value="">選択してください</option>
+                        <option value="初回">初回</option>
+                        <option value="更新">更新</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="plan_number" class="form-label">計画番号 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="plan_number" placeholder="例: 2025-001" required>
+                </div>
+                <div class="col-md-4">
+                    <label for="created_date" class="form-label">計画作成日 <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="created_date" required>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="start_date" class="form-label">計画開始日 <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="start_date" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="end_date" class="form-label">計画終了日 <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="end_date" required>
+                </div>
+            </div>
+
+            <!-- 利用者の状況 -->
+            <h5 class="mb-3 mt-4">利用者の状況</h5>
+            <div class="mb-3">
+                <label for="current_situation" class="form-label">現在の状況</label>
+                <textarea class="form-control" id="current_situation" rows="3" placeholder="利用者の現在の生活状況や心身の状態を記入してください"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="hopes_and_needs" class="form-label">本人・家族の希望やニーズ</label>
+                <textarea class="form-control" id="hopes_and_needs" rows="3" placeholder="本人や家族が希望していることを記入してください"></textarea>
+            </div>
+
+            <!-- 援助方針と目標 -->
+            <h5 class="mb-3 mt-4">援助方針と目標</h5>
+            <div class="mb-3">
+                <label for="support_policy" class="form-label">総合的な援助方針</label>
+                <textarea class="form-control" id="support_policy" rows="3" placeholder="支援の基本的な方針を記入してください"></textarea>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <label for="long_term_goal" class="form-label">長期目標</label>
+                    <textarea class="form-control" id="long_term_goal" rows="2" placeholder="長期的に達成したい目標を記入してください"></textarea>
+                </div>
+                <div class="col-md-4">
+                    <label for="long_term_goal_period" class="form-label">期間</label>
+                    <input type="text" class="form-control" id="long_term_goal_period" placeholder="例: 6ヶ月">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-8">
+                    <label for="short_term_goal" class="form-label">短期目標</label>
+                    <textarea class="form-control" id="short_term_goal" rows="2" placeholder="短期的に達成したい目標を記入してください"></textarea>
+                </div>
+                <div class="col-md-4">
+                    <label for="short_term_goal_period" class="form-label">期間</label>
+                    <input type="text" class="form-control" id="short_term_goal_period" placeholder="例: 3ヶ月">
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <a href="/plans" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> キャンセル
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> 作成
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+    });
+
+    document.getElementById('create-plan-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = {
+            user_id: parseInt(document.getElementById('user_id').value),
+            staff_id: parseInt(document.getElementById('staff_id').value),
+            plan_type: document.getElementById('plan_type').value,
+            plan_number: document.getElementById('plan_number').value,
+            created_date: document.getElementById('created_date').value,
+            start_date: document.getElementById('start_date').value,
+            end_date: document.getElementById('end_date').value,
+            current_situation: document.getElementById('current_situation').value || null,
+            hopes_and_needs: document.getElementById('hopes_and_needs').value || null,
+            support_policy: document.getElementById('support_policy').value || null,
+            long_term_goal: document.getElementById('long_term_goal').value || null,
+            long_term_goal_period: document.getElementById('long_term_goal_period').value || null,
+            short_term_goal: document.getElementById('short_term_goal').value || null,
+            short_term_goal_period: document.getElementById('short_term_goal_period').value || null
+        };
+
+        try {
+            const response = await fetch('/api/plans', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
+
+            if (response.ok) {
+                const newPlan = await response.json();
+                alert('計画を作成しました');
+                window.location.href = `/plans/${newPlan.id}`;
+            } else {
+                const error = await response.json();
+                alert(`作成に失敗しました: ${error.detail}`);
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            alert('サーバーとの通信に失敗しました');
+        }
+    });
+</script>
+{% endblock %}

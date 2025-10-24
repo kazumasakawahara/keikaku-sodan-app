@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}ダッシュボード - 計画相談支援システム{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-speedometer2"></i> ダッシュボード
+        </h1>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- 統計カード -->
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-people-fill text-primary" style="font-size: 2.5rem;"></i>
+                <h3 class="mt-2" id="total-users">-</h3>
+                <p class="text-muted mb-0">総利用者数</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-calendar-check text-success" style="font-size: 2.5rem;"></i>
+                <h3 class="mt-2" id="recent-consultations">-</h3>
+                <p class="text-muted mb-0">今月の相談件数</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-building text-info" style="font-size: 2.5rem;"></i>
+                <h3 class="mt-2" id="total-organizations">-</h3>
+                <p class="text-muted mb-0">登録関係機関数</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-person-badge text-warning" style="font-size: 2.5rem;"></i>
+                <h3 class="mt-2" id="total-staffs">-</h3>
+                <p class="text-muted mb-0">スタッフ数</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- 最近の相談記録 -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> 最近の相談記録</h5>
+            </div>
+            <div class="card-body">
+                <div id="recent-consultations-list" class="list-group">
+                    <p class="text-muted">読み込み中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- クイックアクション -->
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> クイックアクション</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/users/new" class="btn btn-outline-primary btn-lg">
+                        <i class="bi bi-person-plus"></i> 新規利用者登録
+                    </a>
+                    <a href="/users" class="btn btn-outline-primary btn-lg">
+                        <i class="bi bi-search"></i> 利用者検索
+                    </a>
+                    <button class="btn btn-outline-secondary btn-lg" disabled>
+                        <i class="bi bi-file-earmark-text"></i> 計画書作成 (Phase 2)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ページロード時に統計データを取得
+    window.addEventListener('DOMContentLoaded', async () => {
+        await checkAuth();
+        await loadDashboardStats();
+        await loadRecentConsultations();
+    });
+
+    async function loadDashboardStats() {
+        try {
+            // 利用者数取得
+            const usersResponse = await fetch('/api/users?limit=1000');
+            if (usersResponse.ok) {
+                const users = await usersResponse.json();
+                document.getElementById('total-users').textContent = users.length;
+            }
+
+            // 相談記録取得
+            const consultationsResponse = await fetch('/api/consultations?limit=1000');
+            if (consultationsResponse.ok) {
+                const consultations = await consultationsResponse.json();
+                const thisMonth = consultations.filter(c => {
+                    const date = new Date(c.consultation_date);
+                    const now = new Date();
+                    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+                });
+                document.getElementById('recent-consultations').textContent = thisMonth.length;
+            }
+
+            // 関係機関数取得
+            const orgsResponse = await fetch('/api/organizations?limit=1000');
+            if (orgsResponse.ok) {
+                const orgs = await orgsResponse.json();
+                document.getElementById('total-organizations').textContent = orgs.length;
+            }
+
+            // スタッフ数取得
+            const staffsResponse = await fetch('/api/staffs');
+            if (staffsResponse.ok) {
+                const staffs = await staffsResponse.json();
+                document.getElementById('total-staffs').textContent = staffs.length;
+            }
+        } catch (error) {
+            console.error('統計データの取得に失敗しました:', error);
+        }
+    }
+
+    async function loadRecentConsultations() {
+        try {
+            const response = await fetch('/api/consultations?limit=5');
+            if (response.ok) {
+                const consultations = await response.json();
+                const listDiv = document.getElementById('recent-consultations-list');
+
+                if (consultations.length === 0) {
+                    listDiv.innerHTML = '<p class="text-muted">相談記録がありません</p>';
+                    return;
+                }
+
+                listDiv.innerHTML = consultations.map(c => `
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">利用者ID: ${c.user_id}</h6>
+                            <small>${new Date(c.consultation_date).toLocaleDateString('ja-JP')}</small>
+                        </div>
+                        <p class="mb-1 small">${c.consultation_type} - ${c.content.substring(0, 50)}${c.content.length > 50 ? '...' : ''}</p>
+                    </div>
+                `).join('');
+            }
+        } catch (error) {
+            console.error('相談記録の取得に失敗しました:', error);
+        }
+    }
+</script>
+{% endblock %}
