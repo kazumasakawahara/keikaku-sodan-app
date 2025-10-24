@@ -125,33 +125,56 @@ brew install uv
 **Windowsをお使いの方：**
 PowerShellを開いて、上記のインストール用URLからインストーラーをダウンロードしてください。
 
-### ステップ3: システムのセットアップ
+### ステップ3: プロジェクトのダウンロード
+
+#### 方法A: Gitを使う場合（推奨）
 
 ```bash
-# 1. プロジェクトフォルダに移動
-cd ~/AI-Workspace/keikaku-sodan-app
+# GitHubからプロジェクトをダウンロード
+git clone https://github.com/kazumasakawahara/keikaku-sodan-app.git
 
-# 2. 仮想環境を作成（初回のみ）
+# プロジェクトフォルダに移動
+cd keikaku-sodan-app
+```
+
+#### 方法B: Gitがない場合
+
+1. ブラウザで以下のURLにアクセス：
+   ```
+   https://github.com/kazumasakawahara/keikaku-sodan-app
+   ```
+2. 緑色の「**Code**」ボタンをクリック
+3. 「**Download ZIP**」を選択
+4. ダウンロードしたZIPファイルを解凍
+5. ターミナル（またはコマンドプロンプト）で解凍したフォルダに移動：
+   ```bash
+   cd keikaku-sodan-app-main
+   ```
+
+### ステップ4: システムのセットアップ
+
+```bash
+# 1. 仮想環境を作成（初回のみ）
 uv venv
 
-# 3. 仮想環境を有効化
+# 2. 仮想環境を有効化
 # Macの場合：
 source .venv/bin/activate
 
 # Windowsの場合：
 .venv\Scripts\activate
 
-# 4. 必要なソフトウェアをインストール（初回のみ）
+# 3. 必要なソフトウェアをインストール（初回のみ）
 uv sync
 
-# 5. データベースの初期化（初回のみ）
+# 4. データベースの初期化（初回のみ）
 python scripts/init_db.py
 
-# 6. テストデータの投入（初回のみ・任意）
+# 5. テストデータの投入（初回のみ・任意）
 python scripts/seed_data.py
 ```
 
-### ステップ4: システムの起動
+### ステップ5: システムの起動
 
 ```bash
 # シンプルな起動方法
@@ -161,7 +184,7 @@ python scripts/seed_data.py
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-### ステップ5: ブラウザでアクセス
+### ステップ6: ブラウザでアクセス
 
 システムが起動したら、お使いのブラウザ（Chrome、Safari、Edgeなど）で以下のアドレスにアクセスしてください：
 
@@ -169,7 +192,7 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 http://localhost:8000
 ```
 
-### ステップ6: ログイン
+### ステップ7: ログイン
 
 **初期アカウント情報：**
 - ユーザー名: `admin`
