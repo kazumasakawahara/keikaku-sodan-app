@@ -166,6 +166,26 @@
         </div>
 
         <div class="card shadow-sm mb-4">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="bi bi-person-heart"></i> 障害特性・興味の偏り</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label for="disability_characteristics" class="form-label">障害特性</label>
+                        <textarea class="form-control" id="disability_characteristics" name="disability_characteristics" rows="4" placeholder="特性、困難さ、配慮事項などを記入してください"></textarea>
+                        <div class="form-text">利用者の障害特性や、支援において配慮すべき事項などを記入してください。</div>
+                    </div>
+                    <div class="col-12">
+                        <label for="interest_bias" class="form-label">興味の偏り</label>
+                        <textarea class="form-control" id="interest_bias" name="interest_bias" rows="4" placeholder="興味関心、好き嫌い、こだわりなどを記入してください"></textarea>
+                        <div class="form-text">利用者の興味関心や好き嫌い、こだわりなどを記入してください。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
             <div class="card-header bg-success text-white">
                 <h5 class="mb-0"><i class="bi bi-file-text"></i> 備考</h5>
             </div>
@@ -240,6 +260,8 @@
                 document.getElementById('disability_support_level').value = user.disability_support_level || '';
                 document.getElementById('disability_support_certified_date').value = user.disability_support_certified_date || '';
                 document.getElementById('disability_support_expiry_date').value = user.disability_support_expiry_date || '';
+                document.getElementById('disability_characteristics').value = user.disability_characteristics || '';
+                document.getElementById('interest_bias').value = user.interest_bias || '';
                 document.getElementById('guardian_name').value = user.guardian_name || '';
                 document.getElementById('guardian_phone').value = user.guardian_phone || '';
                 document.getElementById('guardian_relationship').value = user.guardian_relationship || '';

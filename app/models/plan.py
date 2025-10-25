@@ -70,6 +70,7 @@ class Plan(Base):
     user = relationship("User", back_populates="plans")
     staff = relationship("Staff", back_populates="plans")
     monitorings = relationship("Monitoring", back_populates="plan", cascade="all, delete-orphan")
+    evaluations = relationship("PlanEvaluation", back_populates="plan", cascade="all, delete-orphan")
 
     @property
     def is_active(self):

@@ -15,6 +15,41 @@
     </div>
 </div>
 
+<!-- AI計画提案ボタン -->
+<div class="card shadow-sm mb-3 bg-light">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-1"><i class="bi bi-robot"></i> AI計画作成支援</h5>
+                <p class="mb-0 text-muted small">利用者情報をもとに、AIが計画案を提案します</p>
+            </div>
+            <button type="button" class="btn btn-primary" id="ai-suggest-btn" disabled>
+                <i class="bi bi-lightbulb"></i> AI提案を生成
+            </button>
+        </div>
+        <div id="ai-loading" class="d-none mt-3">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">生成中...</span>
+                </div>
+                <p class="mt-2 text-muted">AIが計画を生成しています（20-30秒程度かかります）...</p>
+            </div>
+        </div>
+        <div id="ai-result" class="d-none mt-3">
+            <div class="alert alert-success">
+                <h6><i class="bi bi-check-circle"></i> AI提案が生成されました</h6>
+                <p class="mb-0 small">以下のフォームに自動入力されました。内容を確認・修正してご利用ください。</p>
+            </div>
+        </div>
+        <div id="ai-error" class="d-none mt-3">
+            <div class="alert alert-danger">
+                <h6><i class="bi bi-exclamation-triangle"></i> エラーが発生しました</h6>
+                <p class="mb-0 small" id="ai-error-message"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="card shadow-sm">
     <div class="card-body">
         <form id="create-plan-form">
@@ -130,6 +165,77 @@
 <script>
     window.addEventListener('DOMContentLoaded', async () => {
         await checkAuth();
+    });
+
+    // AI提案機能
+    const userSelect = document.getElementById('user_id');
+    const aiSuggestBtn = document.getElementById('ai-suggest-btn');
+
+    // 利用者が選択されたらAI提案ボタンを有効化
+    userSelect.addEventListener('change', () => {
+        aiSuggestBtn.disabled = !userSelect.value;
+    });
+
+    // AI提案ボタンクリック
+    aiSuggestBtn.addEventListener('click', async () => {
+        const userId = parseInt(userSelect.value);
+        if (!userId) return;
+
+        // UI状態を更新
+        aiSuggestBtn.disabled = true;
+        document.getElementById('ai-loading').classList.remove('d-none');
+        document.getElementById('ai-result').classList.add('d-none');
+        document.getElementById('ai-error').classList.add('d-none');
+
+        try {
+            const response = await fetch('/api/ai/plans/propose', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    user_id: userId,
+                    model: 'llama3'
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const proposal = result.proposal;
+
+                // フォームに自動入力
+                if (proposal.current_situation) {
+                    document.getElementById('current_situation').value = proposal.current_situation;
+                }
+                if (proposal.hopes_and_needs) {
+                    document.getElementById('hopes_and_needs').value = proposal.hopes_and_needs;
+                }
+                if (proposal.support_policy) {
+                    document.getElementById('support_policy').value = proposal.support_policy;
+                }
+                if (proposal.long_term_goal) {
+                    document.getElementById('long_term_goal').value = proposal.long_term_goal;
+                }
+                if (proposal.short_term_goal) {
+                    document.getElementById('short_term_goal').value = proposal.short_term_goal;
+                }
+
+                // 成功メッセージを表示
+                document.getElementById('ai-loading').classList.add('d-none');
+                document.getElementById('ai-result').classList.remove('d-none');
+                aiSuggestBtn.disabled = false;
+            } else {
+                const error = await response.json();
+                throw new Error(error.detail || '提案生成に失敗しました');
+            }
+        } catch (error) {
+            console.error('AI提案エラー:', error);
+            document.getElementById('ai-loading').classList.add('d-none');
+            document.getElementById('ai-error').classList.remove('d-none');
+            document.getElementById('ai-error-message').textContent = error.message;
+            aiSuggestBtn.disabled = false;
+        }
     });
 
     document.getElementById('create-plan-form').addEventListener('submit', async (e) => {

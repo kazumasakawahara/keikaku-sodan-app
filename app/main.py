@@ -75,7 +75,7 @@ async def users_list_page(request: Request):
 @app.get("/users/new")
 async def user_create_page(request: Request):
     """利用者新規作成画面"""
-    from app.database.session import get_db
+    from app.database.connection import get_db
     from app.models.staff import Staff
 
     db = next(get_db())
@@ -118,7 +118,7 @@ async def consultations_list_page(request: Request):
 @app.get("/consultations/new")
 async def consultation_create_page(request: Request):
     """相談記録新規作成画面"""
-    from app.database.session import get_db
+    from app.database.connection import get_db
     from app.models.user import User
     from app.models.staff import Staff
 
@@ -150,11 +150,12 @@ async def plans_list_page(request: Request):
     return templates.TemplateResponse("plans/list.html", {"request": request})
 
 
-# 重要: /plans/new は /plans/{plan_id} より前に定義
+# 重要: /plans/new と /plans/create は /plans/{plan_id} より前に定義
 @app.get("/plans/new")
+@app.get("/plans/create")
 async def plan_create_page(request: Request):
     """計画新規作成画面"""
-    from app.database.session import get_db
+    from app.database.connection import get_db
     from app.models.user import User
     from app.models.staff import Staff
 
@@ -196,7 +197,7 @@ async def monitorings_list_page(request: Request):
 @app.get("/monitorings/new")
 async def monitoring_create_page(request: Request):
     """モニタリング新規作成画面"""
-    from app.database.session import get_db
+    from app.database.connection import get_db
     from app.models.user import User
     from app.models.staff import Staff
     from app.models.plan import Plan

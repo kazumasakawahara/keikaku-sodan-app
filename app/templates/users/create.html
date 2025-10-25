@@ -90,6 +90,22 @@
                 </div>
             </div>
 
+            <h5 class="mb-3 mt-4">障害特性・興味の偏り</h5>
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="disability_characteristics" class="form-label">障害特性</label>
+                    <textarea class="form-control" id="disability_characteristics" rows="3" placeholder="特性、困難さ、配慮事項などを記入してください"></textarea>
+                    <div class="form-text">利用者の障害特性や、支援において配慮すべき事項などを記入してください。</div>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label for="interest_bias" class="form-label">興味の偏り</label>
+                    <textarea class="form-control" id="interest_bias" rows="3" placeholder="興味関心、好き嫌い、こだわりなどを記入してください"></textarea>
+                    <div class="form-text">利用者の興味関心や好き嫌い、こだわりなどを記入してください。</div>
+                </div>
+            </div>
+
             <div class="d-flex justify-content-between mt-4">
                 <a href="/users" class="btn btn-secondary">
                     <i class="bi bi-x-circle"></i> キャンセル
@@ -124,6 +140,8 @@
             email: document.getElementById('email').value || null,
             emergency_contact_name: document.getElementById('emergency_contact_name').value || null,
             emergency_contact_phone: document.getElementById('emergency_contact_phone').value || null,
+            disability_characteristics: document.getElementById('disability_characteristics').value || null,
+            interest_bias: document.getElementById('interest_bias').value || null,
             assigned_staff_id: document.getElementById('assigned_staff_id').value ? parseInt(document.getElementById('assigned_staff_id').value) : null
         };
 

@@ -4,7 +4,7 @@
 計画相談支援の利用者情報を管理します。
 """
 from datetime import datetime, date
-from sqlalchemy import Column, Integer, String, Date, DateTime, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, DateTime, Boolean, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from app.database.connection import Base
 
@@ -40,6 +40,10 @@ class User(Base):
     disability_support_level = Column(Integer, comment="障害支援区分 (1-6)")
     disability_support_certified_date = Column(Date, comment="障害支援区分認定日")
     disability_support_expiry_date = Column(Date, comment="障害支援区分有効期限")
+
+    # 障害特性・興味の偏り
+    disability_characteristics = Column(Text, comment="障害特性（特性、困難さ、配慮事項など）")
+    interest_bias = Column(Text, comment="興味の偏り（興味関心、好き嫌い、こだわりなど）")
 
     # 後見人情報
     guardian_type = Column(String(50), comment="後見人種別（成年後見人/保佐人/補助人）")

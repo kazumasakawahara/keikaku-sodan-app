@@ -6,7 +6,7 @@ FastAPIのAPIエンドポイントを定義します。
 from fastapi import APIRouter
 from app.api import (
     auth, staffs, users, consultations, organizations, plans, monitorings,
-    pdf, network, dashboard, medications, prescribing_doctors, drug_info
+    pdf, network, dashboard, medications, prescribing_doctors, drug_info, ai_assistant
 )
 
 api_router = APIRouter()
@@ -25,5 +25,6 @@ api_router.include_router(drug_info.router, tags=["薬品情報"])
 api_router.include_router(pdf.router, prefix="/pdf", tags=["PDF出力"])
 api_router.include_router(network.router, prefix="/network", tags=["ネットワーク図"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["ダッシュボード"])
+api_router.include_router(ai_assistant.router, tags=["AI計画作成支援"])
 
 __all__ = ["api_router"]

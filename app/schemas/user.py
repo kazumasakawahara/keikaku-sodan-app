@@ -23,6 +23,8 @@ class UserBase(BaseModel):
     disability_support_level: Optional[int] = Field(None, ge=1, le=6, description="障害支援区分")
     disability_support_certified_date: Optional[date] = Field(None, description="障害支援区分認定日")
     disability_support_expiry_date: Optional[date] = Field(None, description="障害支援区分有効期限")
+    disability_characteristics: Optional[str] = Field(None, description="障害特性")
+    interest_bias: Optional[str] = Field(None, description="興味の偏り")
     guardian_type: Optional[str] = Field(None, max_length=50, description="後見人種別")
     guardian_name: Optional[str] = Field(None, max_length=100, description="後見人氏名")
     guardian_contact: Optional[str] = Field(None, max_length=255, description="後見人連絡先")
@@ -49,6 +51,8 @@ class UserUpdate(BaseModel):
     disability_support_level: Optional[int] = Field(None, ge=1, le=6)
     disability_support_certified_date: Optional[date] = None
     disability_support_expiry_date: Optional[date] = None
+    disability_characteristics: Optional[str] = None
+    interest_bias: Optional[str] = None
     guardian_type: Optional[str] = Field(None, max_length=50)
     guardian_name: Optional[str] = Field(None, max_length=100)
     guardian_contact: Optional[str] = Field(None, max_length=255)
