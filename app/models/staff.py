@@ -4,7 +4,7 @@
 相談支援専門員の情報を管理します。
 """
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Date, Text
 from sqlalchemy.orm import relationship
 from app.database.connection import Base
 
@@ -28,6 +28,11 @@ class Staff(Base):
     name = Column(String(100), nullable=False, comment="氏名")
     role = Column(String(20), nullable=False, default="staff", comment="権限 (admin/staff)")
     email = Column(String(255), comment="メールアドレス")
+
+    # 雇用情報
+    hire_date = Column(Date, comment="採用年月日")
+    qualifications = Column(Text, comment="資格（カンマ区切り）")
+    resignation_date = Column(Date, comment="退職日")
 
     # ステータス
     is_active = Column(Boolean, default=True, nullable=False, comment="有効フラグ")

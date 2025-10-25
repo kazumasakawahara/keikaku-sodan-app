@@ -42,29 +42,31 @@
     </div>
 </div>
 
-<!-- 担当利用者統計 -->
+<!-- 担当利用者一覧 -->
 <div class="card shadow-sm mb-4">
-    <div class="card-header bg-info text-white">
-        <h5 class="mb-0"><i class="bi bi-bar-chart"></i> 担当利用者統計</h5>
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-people"></i> 担当利用者一覧</h5>
     </div>
     <div class="card-body">
-        <div class="row text-center" id="statsInfo">
-            <div class="col-md-3">
-                <h3 id="totalUsers" class="text-primary">-</h3>
-                <p class="text-muted">担当利用者</p>
-            </div>
-            <div class="col-md-3">
-                <h3 id="totalConsultations" class="text-success">-</h3>
-                <p class="text-muted">相談記録</p>
-            </div>
-            <div class="col-md-3">
-                <h3 id="totalPlans" class="text-warning">-</h3>
-                <p class="text-muted">計画</p>
-            </div>
-            <div class="col-md-3">
-                <h3 id="totalMonitorings" class="text-info">-</h3>
-                <p class="text-muted">モニタリング</p>
-            </div>
+        <div class="table-responsive">
+            <table class="table table-hover" id="assignedUsersTable">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>氏名</th>
+                        <th>フリガナ</th>
+                        <th>年齢</th>
+                        <th>性別</th>
+                        <th>障害支援区分</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="assignedUsersTableBody">
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">読み込み中...</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -78,7 +80,7 @@
     window.addEventListener('DOMContentLoaded', async () => {
         await checkAuth();
         await loadStaffDetail();
-        await loadStaffStats();
+        await loadAssignedUsers();
         checkAdminRole();
     });
 
@@ -97,7 +99,7 @@
 
     async function loadStaffDetail() {
         try {
-            const response = await fetch(`/api/staff/${staffId}`, {
+            const response = await fetch(`/api/staffs/${staffId}`, {
                 credentials: 'include'
             });
 
@@ -123,78 +125,114 @@
             ? '<span class="badge bg-danger">管理者</span>'
             : '<span class="badge bg-info">スタッフ</span>';
 
-        const statusBadge = staff.is_active
-            ? '<span class="badge bg-success">有効</span>'
-            : '<span class="badge bg-secondary">無効</span>';
+        // ステータスを「勤・退」フラグで表示（退職日があれば「退」、なければ「勤」）
+        const statusFlag = staff.resignation_date
+            ? '<span class="badge bg-secondary">退</span>'
+            : '<span class="badge bg-success">勤</span>';
 
         document.getElementById('staffInfo').innerHTML = `
-            <div class="col-md-6">
-                <label class="form-label fw-bold">ID</label>
-                <p class="form-control-plaintext">${staff.id}</p>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label fw-bold">ユーザー名</label>
-                <p class="form-control-plaintext">${staff.username}</p>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label fw-bold">氏名</label>
-                <p class="form-control-plaintext">${staff.name}</p>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label fw-bold">メールアドレス</label>
-                <p class="form-control-plaintext">${staff.email || '<span class="text-muted">未設定</span>'}</p>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label fw-bold">役割</label>
-                <p class="form-control-plaintext">${roleBadge}</p>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label fw-bold">ステータス</label>
-                <p class="form-control-plaintext">${statusBadge}</p>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label fw-bold">作成日時</label>
-                <p class="form-control-plaintext">${new Date(staff.created_at).toLocaleString('ja-JP')}</p>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label fw-bold">更新日時</label>
-                <p class="form-control-plaintext">${new Date(staff.updated_at).toLocaleString('ja-JP')}</p>
+            <div class="col-12">
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">ID</div>
+                    <div class="col-md-9">${staff.id}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">ユーザー名</div>
+                    <div class="col-md-9">${staff.username}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">氏名</div>
+                    <div class="col-md-9">${staff.name}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">メールアドレス</div>
+                    <div class="col-md-9">${staff.email || '<span class="text-muted">未設定</span>'}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">役割</div>
+                    <div class="col-md-9">${roleBadge}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">ステータス</div>
+                    <div class="col-md-9">${statusFlag}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">採用年月日</div>
+                    <div class="col-md-9">${staff.hire_date ? new Date(staff.hire_date).toLocaleDateString('ja-JP') : '<span class="text-muted">未設定</span>'}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">資格</div>
+                    <div class="col-md-9">${staff.qualifications && staff.qualifications.length > 0 ? staff.qualifications.join(', ') : '<span class="text-muted">未設定</span>'}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">退職日</div>
+                    <div class="col-md-9">${staff.resignation_date ? new Date(staff.resignation_date).toLocaleDateString('ja-JP') : '<span class="text-muted">未設定</span>'}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">作成日時</div>
+                    <div class="col-md-9">${new Date(staff.created_at).toLocaleString('ja-JP')}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3 fw-bold">更新日時</div>
+                    <div class="col-md-9">${new Date(staff.updated_at).toLocaleString('ja-JP')}</div>
+                </div>
             </div>
         `;
     }
 
-    async function loadStaffStats() {
+    async function loadAssignedUsers() {
         try {
-            // 担当利用者数
-            const usersResponse = await fetch(`/api/users?staff_id=${staffId}&limit=1000`, {
+            // 担当利用者一覧を取得
+            const usersResponse = await fetch(`/api/users?staff_id=${staffId}&limit=500`, {
                 credentials: 'include'
             });
-            const users = usersResponse.ok ? await usersResponse.json() : [];
-            document.getElementById('totalUsers').textContent = users.length;
 
-            // 相談記録数
-            const consultationsResponse = await fetch(`/api/consultations?staff_id=${staffId}&limit=1000`, {
-                credentials: 'include'
-            });
-            const consultations = consultationsResponse.ok ? await consultationsResponse.json() : [];
-            document.getElementById('totalConsultations').textContent = consultations.length;
+            const tbody = document.getElementById('assignedUsersTableBody');
 
-            // 計画数
-            const plansResponse = await fetch(`/api/plans?staff_id=${staffId}&limit=1000`, {
-                credentials: 'include'
-            });
-            const plans = plansResponse.ok ? await plansResponse.json() : [];
-            document.getElementById('totalPlans').textContent = plans.length;
+            if (!usersResponse.ok) {
+                const errorText = await usersResponse.text();
+                console.error('API Error:', usersResponse.status, errorText);
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">データの取得に失敗しました (${usersResponse.status})</td></tr>`;
+                return;
+            }
 
-            // モニタリング数
-            const monitoringsResponse = await fetch(`/api/monitorings?staff_id=${staffId}&limit=1000`, {
-                credentials: 'include'
+            const users = await usersResponse.json();
+
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">担当利用者がいません</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = '';
+            users.forEach(user => {
+                const row = document.createElement('tr');
+
+                const genderDisplay = user.gender || '<span class="text-muted">未設定</span>';
+
+                const supportLevelDisplay = user.disability_support_level ?
+                    `区分${user.disability_support_level}` :
+                    '<span class="text-muted">未設定</span>';
+
+                row.innerHTML = `
+                    <td>${user.id}</td>
+                    <td>${user.name}</td>
+                    <td>${user.name_kana || '<span class="text-muted">未設定</span>'}</td>
+                    <td>${user.age || '<span class="text-muted">-</span>'}歳</td>
+                    <td>${genderDisplay}</td>
+                    <td>${supportLevelDisplay}</td>
+                    <td>
+                        <a href="/users/${user.id}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i> 詳細
+                        </a>
+                    </td>
+                `;
+                tbody.appendChild(row);
             });
-            const monitorings = monitoringsResponse.ok ? await monitoringsResponse.json() : [];
-            document.getElementById('totalMonitorings').textContent = monitorings.length;
 
         } catch (error) {
-            console.error('統計データ取得エラー:', error);
+            console.error('担当利用者取得エラー:', error);
+            const tbody = document.getElementById('assignedUsersTableBody');
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">データの取得に失敗しました</td></tr>';
         }
     }
 
@@ -207,7 +245,7 @@
         }
 
         try {
-            const response = await fetch(`/api/staff/${staffId}`, {
+            const response = await fetch(`/api/staffs/${staffId}`, {
                 method: 'DELETE',
                 credentials: 'include'
             });

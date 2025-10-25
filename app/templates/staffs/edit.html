@@ -33,6 +33,17 @@
     </div>
 
     <div class="card shadow-sm mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="bi bi-briefcase"></i> 雇用情報</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3" id="employmentInfoFields">
+                <!-- JavaScriptで動的に生成 -->
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
         <div class="card-header bg-warning text-dark">
             <h5 class="mb-0"><i class="bi bi-key"></i> パスワード変更（任意）</h5>
         </div>
@@ -92,7 +103,7 @@
 
     async function loadStaffData() {
         try {
-            const response = await fetch(`/api/staff/${staffId}`, {
+            const response = await fetch(`/api/staffs/${staffId}`, {
                 credentials: 'include'
             });
 
@@ -161,6 +172,42 @@
                 </select>
             </div>
         `;
+
+        // 雇用情報フィールドを生成
+        const qualificationOptions = ['保健師', '社会福祉士', '精神保健福祉士', '介護福祉士', '看護師', '准看護師'];
+        const staffQualifications = staff.qualifications || [];
+
+        let qualificationsHTML = '';
+        qualificationOptions.forEach((qual, index) => {
+            const isChecked = staffQualifications.includes(qual);
+            qualificationsHTML += `
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input qualification-checkbox" type="checkbox" value="${qual}" id="qual_${index}" ${isChecked ? 'checked' : ''}>
+                        <label class="form-check-label" for="qual_${index}">${qual}</label>
+                    </div>
+                </div>
+            `;
+        });
+
+        document.getElementById('employmentInfoFields').innerHTML = `
+            <div class="col-md-4">
+                <label for="hire_date" class="form-label">採用年月日</label>
+                <input type="date" class="form-control" id="hire_date" name="hire_date" value="${staff.hire_date || ''}">
+            </div>
+            <div class="col-md-8">
+                <label class="form-label">資格</label>
+                <div class="row g-2">
+                    ${qualificationsHTML}
+                </div>
+                <small class="form-text text-muted">複数選択可</small>
+            </div>
+            <div class="col-md-4">
+                <label for="resignation_date" class="form-label">退職日</label>
+                <input type="date" class="form-control" id="resignation_date" name="resignation_date" value="${staff.resignation_date || ''}">
+                <small class="form-text text-muted">設定するとステータスが無効になります</small>
+            </div>
+        `;
     }
 
     document.getElementById('staffEditForm').addEventListener('submit', async (e) => {
@@ -179,12 +226,19 @@
             }
         }
 
+        // 資格チェックボックスから選択された値を配列として取得
+        const qualifications = Array.from(document.querySelectorAll('.qualification-checkbox:checked'))
+            .map(checkbox => checkbox.value);
+
         const data = {
             username: formData.get('username'),
             name: formData.get('name'),
             email: formData.get('email') || null,
             role: formData.get('role'),
-            is_active: formData.get('is_active') === 'true'
+            is_active: formData.get('is_active') === 'true',
+            hire_date: formData.get('hire_date') || null,
+            qualifications: qualifications.length > 0 ? qualifications : null,
+            resignation_date: formData.get('resignation_date') || null
         };
 
         // パスワードが入力されている場合のみ追加
@@ -193,7 +247,7 @@
         }
 
         try {
-            const response = await fetch(`/api/staff/${staffId}`, {
+            const response = await fetch(`/api/staffs/${staffId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

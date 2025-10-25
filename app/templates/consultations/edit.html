@@ -102,7 +102,9 @@
 
     async function loadStaffList() {
         try {
-            const response = await fetch('/api/staff');
+            const response = await fetch('/api/staffs', {
+                credentials: 'include'
+            });
             if (response.ok) {
                 const staffList = await response.json();
                 const select = document.getElementById('staff_id');

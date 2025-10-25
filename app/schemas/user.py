@@ -77,9 +77,11 @@ class UserListResponse(BaseModel):
     name: str
     name_kana: Optional[str]
     age: Optional[int]
+    birth_date: Optional[date]
     gender: Optional[str]
     phone: Optional[str]
     assigned_staff_id: Optional[int]
+    disability_support_level: Optional[int]
     is_deleted: bool
 
     class Config:

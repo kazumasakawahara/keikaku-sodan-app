@@ -119,13 +119,21 @@ def create_staff(
     # パスワードをハッシュ化
     password_hash = get_password_hash(staff_data.password)
 
+    # 資格リストをカンマ区切り文字列に変換
+    qualifications_str = None
+    if staff_data.qualifications:
+        qualifications_str = ','.join(staff_data.qualifications)
+
     # スタッフを作成
     new_staff = Staff(
         username=staff_data.username,
         password_hash=password_hash,
         name=staff_data.name,
         email=staff_data.email,
-        role=staff_data.role
+        role=staff_data.role,
+        hire_date=staff_data.hire_date,
+        qualifications=qualifications_str,
+        resignation_date=staff_data.resignation_date
     )
 
     db.add(new_staff)
@@ -209,6 +217,15 @@ def update_staff(
 
     # データを更新
     update_data = staff_data.model_dump(exclude_unset=True)
+
+    # 資格リストをカンマ区切り文字列に変換
+    if 'qualifications' in update_data and update_data['qualifications'] is not None:
+        update_data['qualifications'] = ','.join(update_data['qualifications'])
+
+    # 退職日が設定された場合、ステータスを無効に
+    if 'resignation_date' in update_data and update_data['resignation_date'] is not None:
+        update_data['is_active'] = False
+
     for field, value in update_data.items():
         setattr(staff, field, value)
 

@@ -132,6 +132,62 @@ async function loadUsers() {
 }
 
 /**
+ * 誕生日までの日数を計算
+ * @param {string} birthDate - 生年月日 (YYYY-MM-DD)
+ * @returns {number} 誕生日までの日数 (負の値は過ぎた日数)
+ */
+function getDaysUntilBirthday(birthDate) {
+    if (!birthDate) return null;
+
+    const today = new Date();
+    const birth = new Date(birthDate);
+
+    // 今年の誕生日
+    const thisYearBirthday = new Date(today.getFullYear(), birth.getMonth(), birth.getDate());
+
+    // 今年の誕生日が過ぎていれば来年の誕生日
+    if (thisYearBirthday < today) {
+        thisYearBirthday.setFullYear(today.getFullYear() + 1);
+    }
+
+    // 日数の差分を計算
+    const diffTime = thisYearBirthday - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    return diffDays;
+}
+
+/**
+ * 誕生日のHTML表示を生成
+ * @param {string} birthDate - 生年月日 (YYYY-MM-DD)
+ * @returns {string} HTML文字列
+ */
+function formatBirthday(birthDate) {
+    if (!birthDate) return '-';
+
+    const daysUntil = getDaysUntilBirthday(birthDate);
+    const date = new Date(birthDate);
+    const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
+
+    // 誕生日当日
+    if (daysUntil === 0) {
+        return `<span class="badge" style="background-color: #ff8c00; color: white; font-size: 0.95rem;">
+            <i class="bi bi-cake2-fill"></i> ${formattedDate} 🎂
+        </span>`;
+    }
+
+    // 1週間前から
+    if (daysUntil > 0 && daysUntil <= 7) {
+        return `<span class="badge" style="background-color: #9acd32; color: white; font-size: 0.9rem;">
+            <i class="bi bi-cake2"></i> ${formattedDate} (${daysUntil}日後)
+        </span>`;
+    }
+
+    // 通常表示
+    return `<span style="color: #666;">${formattedDate}</span>`;
+}
+
+/**
  * 利用者一覧を表示
  * @param {Array} users - 利用者データ配列
  */
@@ -141,7 +197,7 @@ function displayUsers(users) {
     if (users.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" class="text-center text-muted">
+                <td colspan="7" class="text-center text-muted">
                     検索条件に一致する利用者が見つかりませんでした
                 </td>
             </tr>
@@ -159,6 +215,7 @@ function displayUsers(users) {
             </td>
             <td>${user.name_kana || '-'}</td>
             <td>${user.age !== null ? user.age + '歳' : '-'}</td>
+            <td>${formatBirthday(user.birth_date)}</td>
             <td>${user.disability_support_level ? '区分' + user.disability_support_level : '-'}</td>
             <td>
                 <a href="/users/${user.id}" class="btn btn-sm btn-outline-primary">

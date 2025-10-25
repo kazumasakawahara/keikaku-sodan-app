@@ -97,132 +97,158 @@
         </div>
     </div>
 
-    <!-- 手帳情報 -->
+    <!-- 詳細情報タブ -->
     <div class="card shadow-sm mb-4">
-        <div class="card-header bg-info text-white">
-            <h5 class="mb-0"><i class="bi bi-card-list"></i> 手帳情報</h5>
+        <div class="card-header bg-light">
+            <ul class="nav nav-tabs card-header-tabs" id="userDetailTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="basic-info-tab" data-bs-toggle="tab" data-bs-target="#basic-info" type="button" role="tab">
+                        <i class="bi bi-info-circle"></i> 詳細情報
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="consultations-tab" data-bs-toggle="tab" data-bs-target="#consultations" type="button" role="tab">
+                        <i class="bi bi-chat-dots"></i> 相談記録 <span class="badge bg-success" id="consultations-count">0</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="plans-tab" data-bs-toggle="tab" data-bs-target="#plans" type="button" role="tab">
+                        <i class="bi bi-file-earmark-text"></i> 計画 <span class="badge bg-warning text-dark" id="plans-count">0</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="monitorings-tab" data-bs-toggle="tab" data-bs-target="#monitorings" type="button" role="tab">
+                        <i class="bi bi-clipboard-check"></i> モニタリング <span class="badge bg-info" id="monitorings-count">0</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="network-tab" data-bs-toggle="tab" data-bs-target="#network" type="button" role="tab">
+                        <i class="bi bi-diagram-3"></i> ネットワーク図
+                    </button>
+                </li>
+            </ul>
         </div>
         <div class="card-body">
-            <div id="notebooks-list">
-                <p class="text-muted">読み込み中...</p>
-            </div>
-        </div>
-    </div>
+            <div class="tab-content" id="userDetailTabsContent">
+                <!-- 詳細情報タブ -->
+                <div class="tab-pane fade show active" id="basic-info" role="tabpanel">
+                    <!-- 手帳情報 -->
+                    <div class="mb-4">
+                        <h5 class="mb-3"><i class="bi bi-card-list"></i> 手帳情報</h5>
+                        <div id="notebooks-list">
+                            <p class="text-muted">読み込み中...</p>
+                        </div>
+                    </div>
 
-    <!-- 障害支援区分 -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-warning text-dark">
-            <h5 class="mb-0"><i class="bi bi-shield-check"></i> 障害支援区分</h5>
-        </div>
-        <div class="card-body">
-            <table class="table table-sm">
-                <tr>
-                    <th width="30%">障害支援区分</th>
-                    <td id="detail-support-level"></td>
-                </tr>
-                <tr>
-                    <th>認定日</th>
-                    <td id="detail-certified-date"></td>
-                </tr>
-                <tr>
-                    <th>有効期限</th>
-                    <td id="detail-expiry-date"></td>
-                </tr>
-            </table>
-        </div>
-    </div>
+                    <!-- 障害支援区分 -->
+                    <div class="mb-4">
+                        <h5 class="mb-3"><i class="bi bi-shield-check"></i> 障害支援区分</h5>
+                        <table class="table table-sm table-bordered">
+                            <tr>
+                                <th width="30%" class="bg-light">障害支援区分</th>
+                                <td id="detail-support-level"></td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">認定日</th>
+                                <td id="detail-certified-date"></td>
+                            </tr>
+                            <tr>
+                                <th class="bg-light">有効期限</th>
+                                <td id="detail-expiry-date"></td>
+                            </tr>
+                        </table>
+                    </div>
 
-    <!-- 障害特性・興味の偏り -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-secondary text-white">
-            <h5 class="mb-0"><i class="bi bi-person-heart"></i> 障害特性・興味の偏り</h5>
-        </div>
-        <div class="card-body">
-            <div class="mb-3">
-                <h6 class="fw-bold">障害特性</h6>
-                <div id="detail-disability-characteristics" class="border rounded p-3 bg-light" style="white-space: pre-wrap; min-height: 80px;">
-                    <span class="text-muted">未登録</span>
+                    <!-- 障害特性・興味の偏り -->
+                    <div class="mb-4">
+                        <h5 class="mb-3"><i class="bi bi-person-heart"></i> 障害特性・興味の偏り</h5>
+                        <div class="mb-3">
+                            <h6 class="fw-bold">障害特性</h6>
+                            <div id="detail-disability-characteristics" class="border rounded p-3 bg-light" style="white-space: pre-wrap; min-height: 80px;">
+                                <span class="text-muted">未登録</span>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold">興味の偏り</h6>
+                            <div id="detail-interest-bias" class="border rounded p-3 bg-light" style="white-space: pre-wrap; min-height: 80px;">
+                                <span class="text-muted">未登録</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 服薬情報 -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0"><i class="bi bi-capsule"></i> 服薬情報</h5>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-primary" onclick="addMedication()">
+                                    <i class="bi bi-plus"></i> 新規登録
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="manageDoctors()">
+                                    <i class="bi bi-person-badge"></i> 処方医管理
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="downloadMedicationsPDF()">
+                                    <i class="bi bi-file-pdf"></i> PDF
+                                </button>
+                            </div>
+                        </div>
+                        <div id="medications-list">
+                            <p class="text-muted">読み込み中...</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div>
-                <h6 class="fw-bold">興味の偏り</h6>
-                <div id="detail-interest-bias" class="border rounded p-3 bg-light" style="white-space: pre-wrap; min-height: 80px;">
-                    <span class="text-muted">未登録</span>
+
+                <!-- 相談記録タブ -->
+                <div class="tab-pane fade" id="consultations" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="bi bi-chat-dots"></i> 相談記録</h5>
+                        <button class="btn btn-sm btn-success" onclick="addConsultation()">
+                            <i class="bi bi-plus"></i> 新規記録
+                        </button>
+                    </div>
+                    <div id="consultations-list">
+                        <p class="text-muted">読み込み中...</p>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- 服薬情報 -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="bi bi-capsule"></i> 服薬情報</h5>
-            <div class="btn-group">
-                <button class="btn btn-sm btn-light" onclick="addMedication()">
-                    <i class="bi bi-plus"></i> 新規登録
-                </button>
-                <button class="btn btn-sm btn-light" onclick="manageDoctors()">
-                    <i class="bi bi-person-badge"></i> 処方医管理
-                </button>
-                <button class="btn btn-sm btn-light" onclick="downloadMedicationsPDF()">
-                    <i class="bi bi-file-pdf"></i> PDF出力
-                </button>
-            </div>
-        </div>
-        <div class="card-body">
-            <div id="medications-list">
-                <p class="text-muted">読み込み中...</p>
-            </div>
-        </div>
-    </div>
+                <!-- 計画タブ -->
+                <div class="tab-pane fade" id="plans" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> サービス利用計画</h5>
+                        <a href="/plans/create?user_id={{ user_id }}" class="btn btn-sm btn-warning">
+                            <i class="bi bi-plus"></i> 新規作成
+                        </a>
+                    </div>
+                    <div id="plans-list">
+                        <p class="text-muted">読み込み中...</p>
+                    </div>
+                </div>
 
-    <!-- 相談記録 -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="bi bi-chat-dots"></i> 相談記録</h5>
-            <div class="btn-group">
-                <button class="btn btn-sm btn-light" onclick="addConsultation()">
-                    <i class="bi bi-plus"></i> 新規記録
-                </button>
-            </div>
-        </div>
-        <div class="card-body">
-            <div id="consultations-list">
-                <p class="text-muted">読み込み中...</p>
-            </div>
-        </div>
-    </div>
+                <!-- モニタリングタブ -->
+                <div class="tab-pane fade" id="monitorings" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="bi bi-clipboard-check"></i> モニタリング記録</h5>
+                        <a href="/monitorings/create?user_id={{ user_id }}" class="btn btn-sm btn-info">
+                            <i class="bi bi-plus"></i> 新規作成
+                        </a>
+                    </div>
+                    <div id="monitorings-list">
+                        <p class="text-muted">読み込み中...</p>
+                    </div>
+                </div>
 
-    <!-- ネットワーク図（エコマップ） -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="bi bi-diagram-3"></i> ネットワーク図（エコマップ）</h5>
-            <div class="btn-group">
-                <a href="/users/{{ user_id }}/network" class="btn btn-sm btn-light">
-                    <i class="bi bi-arrows-fullscreen"></i> 全画面表示
-                </a>
-            </div>
-        </div>
-        <div class="card-body">
-            <div id="network-preview" style="min-height: 300px;">
-                <p class="text-muted text-center py-5">読み込み中...</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- アクションボタン -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-dark text-white">
-            <h5 class="mb-0"><i class="bi bi-lightning"></i> クイックアクション</h5>
-        </div>
-        <div class="card-body">
-            <div class="d-grid gap-2 d-md-flex">
-                <button class="btn btn-primary" onclick="addPlan()">
-                    <i class="bi bi-file-earmark-plus"></i> 新規計画作成
-                </button>
-                <button class="btn btn-info" onclick="addMonitoring()">
-                    <i class="bi bi-clipboard-plus"></i> 新規モニタリング作成
-                </button>
+                <!-- ネットワーク図タブ -->
+                <div class="tab-pane fade" id="network" role="tabpanel">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="bi bi-diagram-3"></i> ネットワーク図（エコマップ）</h5>
+                        <a href="/users/{{ user_id }}/network" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-arrows-fullscreen"></i> 全画面表示
+                        </a>
+                    </div>
+                    <div id="network-preview" style="min-height: 400px;">
+                        <p class="text-muted text-center py-5">読み込み中...</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -242,6 +268,8 @@
         await loadNotebooks();
         await loadMedications();
         await loadConsultations();
+        await loadPlans();
+        await loadMonitorings();
         await loadNetworkPreview();
     });
 
@@ -437,31 +465,52 @@
 
     async function loadConsultations() {
         try {
-            const response = await fetch(`/api/consultations?user_id=${userId}&limit=10`);
+            const response = await fetch(`/api/consultations?user_id=${userId}&limit=500`);
             if (response.ok) {
                 const consultations = await response.json();
                 const listDiv = document.getElementById('consultations-list');
+
+                // 件数バッジを更新
+                document.getElementById('consultations-count').textContent = consultations.length;
 
                 if (consultations.length === 0) {
                     listDiv.innerHTML = '<p class="text-muted">相談記録がありません</p>';
                     return;
                 }
 
-                listDiv.innerHTML = consultations.map(c => `
+                // 最新10件のみ表示
+                const displayConsultations = consultations.slice(0, 10);
+
+                listDiv.innerHTML = displayConsultations.map(c => `
                     <div class="card mb-2">
                         <div class="card-body">
-                            <div class="d-flex justify-content-between">
-                                <h6>${new Date(c.consultation_date).toLocaleDateString('ja-JP')} - ${c.consultation_type}</h6>
-                                <small class="text-muted">スタッフID: ${c.staff_id}</small>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h6 class="mb-2">${new Date(c.consultation_date).toLocaleDateString('ja-JP')} - ${c.consultation_type}</h6>
+                                <div class="text-end">
+                                    <small class="text-muted d-block">スタッフID: ${c.staff_id}</small>
+                                    <a href="/consultations/${c.id}" class="btn btn-sm btn-outline-primary mt-1">
+                                        <i class="bi bi-eye"></i> 詳細
+                                    </a>
+                                </div>
                             </div>
-                            <p class="mb-1"><strong>相談内容:</strong> ${c.content}</p>
-                            ${c.response ? `<p class="mb-0 text-muted"><strong>対応:</strong> ${c.response}</p>` : ''}
+                            <p class="mb-1"><strong>相談内容:</strong> ${c.content.length > 100 ? c.content.substring(0, 100) + '...' : c.content}</p>
+                            ${c.response ? `<p class="mb-0 text-muted"><strong>対応:</strong> ${c.response.length > 100 ? c.response.substring(0, 100) + '...' : c.response}</p>` : ''}
                         </div>
                     </div>
                 `).join('');
+
+                // 件数が10件を超える場合は「もっと見る」メッセージを追加
+                if (consultations.length > 10) {
+                    listDiv.innerHTML += `
+                        <div class="alert alert-info mt-3">
+                            <i class="bi bi-info-circle"></i> 最新10件を表示しています。全${consultations.length}件の記録があります。
+                        </div>
+                    `;
+                }
             }
         } catch (error) {
             console.error('エラー:', error);
+            document.getElementById('consultations-list').innerHTML = '<p class="text-danger">相談記録の読み込みに失敗しました</p>';
         }
     }
 
@@ -471,6 +520,130 @@
 
     function addConsultation() {
         window.location.href = `/consultations/new?user_id=${userId}`;
+    }
+
+    async function loadPlans() {
+        try {
+            const response = await fetch(`/api/plans?user_id=${userId}&limit=500`, {
+                credentials: 'include'
+            });
+            const plansList = document.getElementById('plans-list');
+
+            if (response.ok) {
+                const plans = await response.json();
+
+                // 件数バッジを更新
+                document.getElementById('plans-count').textContent = plans.length;
+
+                if (plans.length === 0) {
+                    plansList.innerHTML = '<p class="text-muted">サービス利用計画はまだ作成されていません</p>';
+                } else {
+                    plansList.innerHTML = `
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>計画期間</th>
+                                        <th>担当者</th>
+                                        <th>ステータス</th>
+                                        <th>作成日</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${plans.map(plan => `
+                                        <tr>
+                                            <td>${new Date(plan.plan_start_date).toLocaleDateString('ja-JP')} 〜 ${new Date(plan.plan_end_date).toLocaleDateString('ja-JP')}</td>
+                                            <td>スタッフID: ${plan.staff_id}</td>
+                                            <td><span class="badge ${plan.is_approved ? 'bg-success' : 'bg-warning text-dark'}">${plan.is_approved ? '承認済' : '未承認'}</span></td>
+                                            <td>${new Date(plan.created_at).toLocaleDateString('ja-JP')}</td>
+                                            <td>
+                                                <a href="/plans/${plan.id}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-eye"></i> 詳細
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+            } else {
+                plansList.innerHTML = '<p class="text-danger">計画の取得に失敗しました</p>';
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            document.getElementById('plans-list').innerHTML = '<p class="text-danger">計画の取得中にエラーが発生しました</p>';
+        }
+    }
+
+    async function loadMonitorings() {
+        try {
+            const response = await fetch(`/api/monitorings?user_id=${userId}&limit=500`, {
+                credentials: 'include'
+            });
+            const monitoringsList = document.getElementById('monitorings-list');
+
+            if (response.ok) {
+                const monitorings = await response.json();
+
+                // 件数バッジを更新
+                document.getElementById('monitorings-count').textContent = monitorings.length;
+
+                if (monitorings.length === 0) {
+                    monitoringsList.innerHTML = '<p class="text-muted">モニタリング記録はまだ作成されていません</p>';
+                } else {
+                    // 最新10件のみ表示
+                    const displayMonitorings = monitorings.slice(0, 10);
+
+                    monitoringsList.innerHTML = `
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>実施日</th>
+                                        <th>担当者</th>
+                                        <th>形態</th>
+                                        <th>作成日</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${displayMonitorings.map(monitoring => `
+                                        <tr>
+                                            <td>${new Date(monitoring.monitoring_date).toLocaleDateString('ja-JP')}</td>
+                                            <td>スタッフID: ${monitoring.staff_id}</td>
+                                            <td>${monitoring.monitoring_type || '-'}</td>
+                                            <td>${new Date(monitoring.created_at).toLocaleDateString('ja-JP')}</td>
+                                            <td>
+                                                <a href="/monitorings/${monitoring.id}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-eye"></i> 詳細
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+
+                    // 件数が10件を超える場合は「もっと見る」メッセージを追加
+                    if (monitorings.length > 10) {
+                        monitoringsList.innerHTML += `
+                            <div class="alert alert-info mt-3">
+                                <i class="bi bi-info-circle"></i> 最新10件を表示しています。全${monitorings.length}件の記録があります。
+                            </div>
+                        `;
+                    }
+                }
+            } else {
+                monitoringsList.innerHTML = '<p class="text-danger">モニタリングの取得に失敗しました</p>';
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            document.getElementById('monitorings-list').innerHTML = '<p class="text-danger">モニタリングの取得中にエラーが発生しました</p>';
+        }
     }
 
     function addPlan() {

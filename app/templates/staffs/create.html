@@ -87,6 +87,73 @@
         </div>
     </div>
 
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="bi bi-briefcase"></i> 雇用情報</h5>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <!-- 採用年月日 -->
+                <div class="col-md-4">
+                    <label for="hire_date" class="form-label">採用年月日</label>
+                    <input type="date" class="form-control" id="hire_date" name="hire_date">
+                    <small class="form-text text-muted">任意</small>
+                </div>
+
+                <!-- 資格 -->
+                <div class="col-md-8">
+                    <label class="form-label">資格</label>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input qualification-checkbox" type="checkbox" value="保健師" id="qual_1">
+                                <label class="form-check-label" for="qual_1">保健師</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input qualification-checkbox" type="checkbox" value="社会福祉士" id="qual_2">
+                                <label class="form-check-label" for="qual_2">社会福祉士</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input qualification-checkbox" type="checkbox" value="精神保健福祉士" id="qual_3">
+                                <label class="form-check-label" for="qual_3">精神保健福祉士</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input qualification-checkbox" type="checkbox" value="介護福祉士" id="qual_4">
+                                <label class="form-check-label" for="qual_4">介護福祉士</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input qualification-checkbox" type="checkbox" value="看護師" id="qual_5">
+                                <label class="form-check-label" for="qual_5">看護師</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input qualification-checkbox" type="checkbox" value="准看護師" id="qual_6">
+                                <label class="form-check-label" for="qual_6">准看護師</label>
+                            </div>
+                        </div>
+                    </div>
+                    <small class="form-text text-muted">複数選択可</small>
+                </div>
+
+                <!-- 退職日 -->
+                <div class="col-md-4">
+                    <label for="resignation_date" class="form-label">退職日</label>
+                    <input type="date" class="form-control" id="resignation_date" name="resignation_date">
+                    <small class="form-text text-muted">設定するとステータスが無効になります</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="d-flex justify-content-between mb-5">
         <a href="/staffs" class="btn btn-secondary">
             <i class="bi bi-x-circle"></i> キャンセル
@@ -128,17 +195,24 @@
             return;
         }
 
+        // 資格チェックボックスから選択された値を配列として取得
+        const qualifications = Array.from(document.querySelectorAll('.qualification-checkbox:checked'))
+            .map(checkbox => checkbox.value);
+
         const data = {
             username: formData.get('username'),
             name: formData.get('name'),
             email: formData.get('email') || null,
             password: password,
             role: formData.get('role'),
-            is_active: formData.get('is_active') === 'true'
+            is_active: formData.get('is_active') === 'true',
+            hire_date: formData.get('hire_date') || null,
+            qualifications: qualifications.length > 0 ? qualifications : null,
+            resignation_date: formData.get('resignation_date') || null
         };
 
         try {
-            const response = await fetch('/api/staff', {
+            const response = await fetch('/api/staffs', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

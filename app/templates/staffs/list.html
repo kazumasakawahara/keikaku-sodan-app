@@ -70,7 +70,7 @@
 
     async function loadStaffList() {
         try {
-            const response = await fetch('/api/staff', {
+            const response = await fetch('/api/staffs', {
                 credentials: 'include'
             });
 
@@ -109,16 +109,16 @@
                     <td>${staff.email || '<span class="text-muted">未設定</span>'}</td>
                     <td>${statusBadge}</td>
                     <td>
-                        <a href="/staffs/${staff.id}" class="btn btn-sm btn-outline-primary" title="詳細">
-                            <i class="bi bi-eye"></i>
+                        <a href="/staffs/${staff.id}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i> 詳細
                         </a>
                         ${isAdmin ? `
-                            <a href="/staffs/${staff.id}/edit" class="btn btn-sm btn-outline-secondary" title="編集">
-                                <i class="bi bi-pencil"></i>
+                            <a href="/staffs/${staff.id}/edit" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil"></i> 編集
                             </a>
                             ${currentUser.id !== staff.id ? `
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteStaff(${staff.id}, '${staff.name}')" title="削除">
-                                    <i class="bi bi-trash"></i>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteStaff(${staff.id}, '${staff.name}')">
+                                    <i class="bi bi-trash"></i> 削除
                                 </button>
                             ` : ''}
                         ` : ''}
