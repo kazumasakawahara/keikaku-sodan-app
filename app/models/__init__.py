@@ -12,6 +12,9 @@ from app.models.organization import Organization
 from app.models.user_organization import UserOrganization
 from app.models.plan import Plan
 from app.models.monitoring import Monitoring
+from app.models.prescribing_doctor import PrescribingDoctor
+from app.models.medication import Medication
+from app.models.medication_change import MedicationChange
 
 # すべてのモデルをエクスポート
 __all__ = [
@@ -24,4 +27,7 @@ __all__ = [
     "UserOrganization",
     "Plan",
     "Monitoring",
+    "PrescribingDoctor",
+    "Medication",
+    "MedicationChange",
 ]

@@ -16,6 +16,8 @@ from app.models.consultation import Consultation
 from app.models.plan import Plan
 from app.models.monitoring import Monitoring
 from app.models.notebook import Notebook
+from app.models.medication import Medication
+from app.models.prescribing_doctor import PrescribingDoctor
 from app.api.auth import get_current_staff
 
 router = APIRouter()
@@ -125,6 +127,46 @@ async def get_dashboard_stats(
             "count": count
         })
 
+    # 服薬情報統計
+    total_medications = db.query(func.count(Medication.id)).scalar()
+    current_medications = db.query(func.count(Medication.id)).filter(
+        Medication.is_current == True
+    ).scalar()
+
+    # 服薬中の利用者数
+    users_with_medications = db.query(func.count(func.distinct(Medication.user_id))).filter(
+        Medication.is_current == True
+    ).scalar()
+
+    # 処方医統計
+    total_doctors = db.query(func.count(PrescribingDoctor.id)).scalar()
+
+    # 処方医別利用者数（上位5件）
+    doctors_with_patient_count = db.query(
+        PrescribingDoctor.id,
+        PrescribingDoctor.name,
+        PrescribingDoctor.hospital_name,
+        func.count(func.distinct(Medication.user_id)).label('patient_count')
+    ).join(
+        Medication, Medication.prescribing_doctor_id == PrescribingDoctor.id
+    ).filter(
+        Medication.is_current == True
+    ).group_by(
+        PrescribingDoctor.id
+    ).order_by(
+        func.count(func.distinct(Medication.user_id)).desc()
+    ).limit(5).all()
+
+    top_doctors = [
+        {
+            "doctor_id": doc.id,
+            "doctor_name": doc.name,
+            "hospital_name": doc.hospital_name or "",
+            "patient_count": doc.patient_count
+        }
+        for doc in doctors_with_patient_count
+    ]
+
     return {
         "total_users": total_users or 0,
         "active_plans": active_plans or 0,
@@ -133,7 +175,14 @@ async def get_dashboard_stats(
         "consultation_by_type": consultation_by_type,
         "plan_status": plan_status,
         "users_by_age_group": age_groups,
-        "monthly_consultations": monthly_consultations
+        "monthly_consultations": monthly_consultations,
+        "medication_stats": {
+            "total_medications": total_medications or 0,
+            "current_medications": current_medications or 0,
+            "users_with_medications": users_with_medications or 0,
+            "total_doctors": total_doctors or 0,
+            "top_doctors": top_doctors
+        }
     }
 
 

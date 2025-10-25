@@ -73,6 +73,9 @@
                 });
 
                 if (response.ok) {
+                    const data = await response.json();
+                    // アクセストークンをlocalStorageに保存
+                    localStorage.setItem('access_token', data.access_token);
                     window.location.href = '/dashboard';
                 } else {
                     const data = await response.json();

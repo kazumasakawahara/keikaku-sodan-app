@@ -59,3 +59,9 @@ class StaffLogin(BaseModel):
     """ログインスキーマ"""
     username: str = Field(..., min_length=1, description="ユーザー名")
     password: str = Field(..., min_length=1, description="パスワード")
+
+
+class StaffLoginResponse(StaffResponse):
+    """ログインレスポンススキーマ"""
+    access_token: str = Field(..., description="アクセストークン")
+    token_type: str = Field(default="bearer", description="トークンタイプ")

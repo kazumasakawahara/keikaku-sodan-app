@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
 from app.models.staff import Staff
-from app.schemas.staff import StaffLogin, StaffResponse
+from app.schemas.staff import StaffLogin, StaffResponse, StaffLoginResponse
 from app.utils.auth import verify_password, create_access_token, decode_access_token
 from app.config import get_settings
 
@@ -59,7 +59,7 @@ def get_current_staff(
     return staff
 
 
-@router.post("/login", response_model=StaffResponse)
+@router.post("/login", response_model=StaffLoginResponse)
 def login(
     credentials: StaffLogin,
     response: Response,
@@ -74,7 +74,7 @@ def login(
         db: データベースセッション
 
     Returns:
-        StaffResponse: ログインしたスタッフ情報
+        StaffLoginResponse: ログインしたスタッフ情報とアクセストークン
 
     Raises:
         HTTPException: ログイン失敗
@@ -108,7 +108,12 @@ def login(
         samesite="lax"
     )
 
-    return staff
+    # レスポンスボディにもトークンを含める（localStorageでの利用のため）
+    return StaffLoginResponse(
+        **staff.__dict__,
+        access_token=access_token,
+        token_type="bearer"
+    )
 
 
 @router.post("/logout")

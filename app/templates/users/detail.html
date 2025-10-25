@@ -132,6 +132,29 @@
         </div>
     </div>
 
+    <!-- 服薬情報 -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-capsule"></i> 服薬情報</h5>
+            <div class="btn-group">
+                <button class="btn btn-sm btn-light" onclick="addMedication()">
+                    <i class="bi bi-plus"></i> 新規登録
+                </button>
+                <button class="btn btn-sm btn-light" onclick="manageDoctors()">
+                    <i class="bi bi-person-badge"></i> 処方医管理
+                </button>
+                <button class="btn btn-sm btn-light" onclick="downloadMedicationsPDF()">
+                    <i class="bi bi-file-pdf"></i> PDF出力
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="medications-list">
+                <p class="text-muted">読み込み中...</p>
+            </div>
+        </div>
+    </div>
+
     <!-- 相談記録 -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
@@ -187,6 +210,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="/static/js/medication-modal.js"></script>
 <script>
     const userId = {{ user_id }};
     let userData = null;
@@ -195,6 +219,7 @@
         await checkAuth();
         await loadUserDetail();
         await loadNotebooks();
+        await loadMedications();
         await loadConsultations();
         await loadNetworkPreview();
     });
@@ -277,6 +302,101 @@
         }
     }
 
+    async function loadMedications() {
+        try {
+            const response = await fetch(`/api/medications?user_id=${userId}`);
+            if (response.ok) {
+                const medications = await response.json();
+                const listDiv = document.getElementById('medications-list');
+
+                if (medications.length === 0) {
+                    listDiv.innerHTML = '<p class="text-muted">服薬情報が登録されていません</p>';
+                    return;
+                }
+
+                // 現在服用中の薬と過去の薬を分ける
+                const currentMeds = medications.filter(m => m.is_current);
+                const pastMeds = medications.filter(m => !m.is_current);
+
+                let html = '';
+
+                if (currentMeds.length > 0) {
+                    html += '<h6 class="mb-3"><i class="bi bi-capsule-pill"></i> 現在服用中</h6>';
+                    html += '<div class="row g-3 mb-4">';
+                    currentMeds.forEach(med => {
+                        html += `
+                            <div class="col-md-6">
+                                <div class="card border-danger">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h6 class="mb-0">${med.medication_name}</h6>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-primary" onclick="editMedication(${med.id})">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-outline-danger" onclick="deleteMedication(${med.id}, '${med.medication_name}')">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        ${med.generic_name ? `<p class="text-muted small mb-2">一般名: ${med.generic_name}</p>` : ''}
+                                        <table class="table table-sm table-borderless mb-0">
+                                            ${med.dosage ? `<tr><td class="text-muted" width="35%">用量:</td><td>${med.dosage}</td></tr>` : ''}
+                                            ${med.frequency ? `<tr><td class="text-muted">服用回数:</td><td>${med.frequency}</td></tr>` : ''}
+                                            ${med.timing ? `<tr><td class="text-muted">タイミング:</td><td>${med.timing}</td></tr>` : ''}
+                                            ${med.start_date ? `<tr><td class="text-muted">開始日:</td><td>${new Date(med.start_date).toLocaleDateString('ja-JP')}</td></tr>` : ''}
+                                            ${med.prescribing_doctor_name ? `<tr><td class="text-muted">処方医:</td><td>${med.prescribing_doctor_name}${med.prescribing_doctor_hospital ? ' (' + med.prescribing_doctor_hospital + ')' : ''}</td></tr>` : ''}
+                                            ${med.purpose ? `<tr><td class="text-muted">処方目的:</td><td>${med.purpose}</td></tr>` : ''}
+                                        </table>
+                                        ${med.notes ? `<p class="text-muted small mb-0 mt-2"><i class="bi bi-sticky"></i> ${med.notes}</p>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+
+                if (pastMeds.length > 0) {
+                    html += '<h6 class="mb-3 mt-3"><i class="bi bi-clock-history"></i> 服用履歴</h6>';
+                    html += '<div class="accordion" id="pastMedicationsAccordion">';
+                    pastMeds.forEach((med, index) => {
+                        html += `
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#pastMed${index}">
+                                        ${med.medication_name} ${med.end_date ? '(〜' + new Date(med.end_date).toLocaleDateString('ja-JP') + ')' : ''}
+                                    </button>
+                                </h2>
+                                <div id="pastMed${index}" class="accordion-collapse collapse" data-bs-parent="#pastMedicationsAccordion">
+                                    <div class="accordion-body">
+                                        <table class="table table-sm table-borderless mb-0">
+                                            ${med.generic_name ? `<tr><td class="text-muted" width="35%">一般名:</td><td>${med.generic_name}</td></tr>` : ''}
+                                            ${med.dosage ? `<tr><td class="text-muted">用量:</td><td>${med.dosage}</td></tr>` : ''}
+                                            ${med.frequency ? `<tr><td class="text-muted">服用回数:</td><td>${med.frequency}</td></tr>` : ''}
+                                            ${med.timing ? `<tr><td class="text-muted">タイミング:</td><td>${med.timing}</td></tr>` : ''}
+                                            ${med.start_date ? `<tr><td class="text-muted">開始日:</td><td>${new Date(med.start_date).toLocaleDateString('ja-JP')}</td></tr>` : ''}
+                                            ${med.end_date ? `<tr><td class="text-muted">終了日:</td><td>${new Date(med.end_date).toLocaleDateString('ja-JP')}</td></tr>` : ''}
+                                            ${med.prescribing_doctor_name ? `<tr><td class="text-muted">処方医:</td><td>${med.prescribing_doctor_name}${med.prescribing_doctor_hospital ? ' (' + med.prescribing_doctor_hospital + ')' : ''}</td></tr>` : ''}
+                                            ${med.purpose ? `<tr><td class="text-muted">処方目的:</td><td>${med.purpose}</td></tr>` : ''}
+                                            ${med.notes ? `<tr><td class="text-muted">備考:</td><td>${med.notes}</td></tr>` : ''}
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+
+                listDiv.innerHTML = html;
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            document.getElementById('medications-list').innerHTML = '<p class="text-danger">服薬情報の読み込みに失敗しました</p>';
+        }
+    }
+
     async function loadConsultations() {
         try {
             const response = await fetch(`/api/consultations?user_id=${userId}&limit=10`);
@@ -321,6 +441,74 @@
 
     function addMonitoring() {
         window.location.href = `/monitorings/new?user_id=${userId}`;
+    }
+
+    function addMedication() {
+        showMedicationModal(userId);
+    }
+
+    function editMedication(medicationId) {
+        showMedicationModal(userId, medicationId);
+    }
+
+    async function deleteMedication(medicationId, medicationName) {
+        if (!confirm(`「${medicationName}」を削除してもよろしいですか？`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/medications/${medicationId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                }
+            });
+
+            if (response.ok) {
+                alert('服薬情報を削除しました');
+                await loadMedications(); // リロード
+            } else {
+                alert('削除に失敗しました');
+            }
+        } catch (error) {
+            console.error('エラー:', error);
+            alert('削除中にエラーが発生しました');
+        }
+    }
+
+    function manageDoctors() {
+        // 処方医管理ページへ遷移
+        window.location.href = '/doctors';
+    }
+
+    async function downloadMedicationsPDF() {
+        try {
+            const response = await fetch(`/api/pdf/medications/user/${userId}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                }
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `medications_user_${userId}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } else if (response.status === 401) {
+                alert('認証エラー: 再度ログインしてください');
+                window.location.href = '/login';
+            } else {
+                throw new Error('服薬情報PDFの生成に失敗しました');
+            }
+        } catch (error) {
+            console.error('PDF出力エラー:', error);
+            alert('服薬情報PDFの出力に失敗しました: ' + error.message);
+        }
     }
 
     function deleteCurrentUser() {

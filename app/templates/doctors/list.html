@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>処方医一覧 - 計画相談支援システム</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">計画相談支援システム</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">ダッシュボード</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/users">利用者</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/consultations">相談記録</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/plans">計画</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/monitorings">モニタリング</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/organizations">関係機関</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/doctors">処方医</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="logout()">
+                            <i class="bi bi-box-arrow-right"></i> ログアウト
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2><i class="bi bi-person-badge"></i> 処方医一覧</h2>
+                    <button class="btn btn-primary" onclick="showDoctorModal()">
+                        <i class="bi bi-plus-circle"></i> 新規登録
+                    </button>
+                </div>
+
+                <!-- 検索フィルター -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="searchName" class="form-label">医師名</label>
+                                <input type="text" class="form-control" id="searchName" placeholder="医師名で検索">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="searchHospital" class="form-label">医療機関</label>
+                                <input type="text" class="form-control" id="searchHospital" placeholder="医療機関名で検索">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="searchSpecialty" class="form-label">診療科</label>
+                                <input type="text" class="form-control" id="searchSpecialty" placeholder="診療科で検索">
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button class="btn btn-primary" onclick="searchDoctors()">
+                                <i class="bi bi-search"></i> 検索
+                            </button>
+                            <button class="btn btn-secondary" onclick="clearSearch()">
+                                <i class="bi bi-x-circle"></i> クリア
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 処方医一覧テーブル -->
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>医師名</th>
+                                        <th>医療機関名</th>
+                                        <th>診療科</th>
+                                        <th>電話番号</th>
+                                        <th>担当患者数</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="doctorsTableBody">
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted">
+                                            <div class="spinner-border spinner-border-sm me-2" role="status">
+                                                <span class="visually-hidden">読込中...</span>
+                                            </div>
+                                            読込中...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- 処方医モーダル -->
+    <script src="/static/js/prescribing-doctor-modal.js"></script>
+
+    <script>
+        // 認証チェック
+        if (!localStorage.getItem('access_token')) {
+            window.location.href = '/login';
+        }
+
+        // ログアウト処理
+        function logout() {
+            localStorage.removeItem('access_token');
+            window.location.href = '/login';
+        }
+
+        // ページ読み込み時に処方医一覧を取得
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDoctors();
+        });
+
+        // 処方医一覧を取得
+        async function loadDoctors(filters = {}) {
+            try {
+                let url = '/api/prescribing-doctors';
+                const params = new URLSearchParams();
+
+                if (filters.name) params.append('name', filters.name);
+                if (filters.hospital) params.append('hospital_name', filters.hospital);
+                if (filters.specialty) params.append('specialty', filters.specialty);
+
+                if (params.toString()) {
+                    url += '?' + params.toString();
+                }
+
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    const doctors = await response.json();
+                    displayDoctors(doctors);
+                } else if (response.status === 401) {
+                    alert('認証エラー: 再度ログインしてください');
+                    logout();
+                } else {
+                    throw new Error('処方医一覧の取得に失敗しました');
+                }
+            } catch (error) {
+                console.error('処方医一覧取得エラー:', error);
+                document.getElementById('doctorsTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-danger">
+                            <i class="bi bi-exclamation-triangle"></i> データの取得に失敗しました
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // 処方医一覧を表示
+        function displayDoctors(doctors) {
+            const tbody = document.getElementById('doctorsTableBody');
+
+            if (doctors.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">
+                            <i class="bi bi-inbox"></i> 登録されている処方医がありません
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = doctors.map(doctor => `
+                <tr>
+                    <td>
+                        <strong>${doctor.name || ''}</strong>
+                    </td>
+                    <td>${doctor.hospital_name || '-'}</td>
+                    <td>
+                        ${doctor.specialty ? `<span class="badge bg-info">${doctor.specialty}</span>` : '-'}
+                    </td>
+                    <td>
+                        ${doctor.phone ? `<i class="bi bi-telephone"></i> ${doctor.phone}` : '-'}
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary">${doctor.patient_count || 0}名</span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="editDoctor(${doctor.id})" title="編集">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteDoctor(${doctor.id})" title="削除">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 検索実行
+        function searchDoctors() {
+            const filters = {
+                name: document.getElementById('searchName').value.trim(),
+                hospital: document.getElementById('searchHospital').value.trim(),
+                specialty: document.getElementById('searchSpecialty').value.trim()
+            };
+            loadDoctors(filters);
+        }
+
+        // 検索クリア
+        function clearSearch() {
+            document.getElementById('searchName').value = '';
+            document.getElementById('searchHospital').value = '';
+            document.getElementById('searchSpecialty').value = '';
+            loadDoctors();
+        }
+
+        // 処方医編集
+        async function editDoctor(doctorId) {
+            try {
+                const response = await fetch(`/api/prescribing-doctors/${doctorId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    const doctor = await response.json();
+                    showDoctorModal(doctor);
+                } else {
+                    throw new Error('処方医情報の取得に失敗しました');
+                }
+            } catch (error) {
+                console.error('処方医取得エラー:', error);
+                alert('処方医情報の取得に失敗しました');
+            }
+        }
+
+        // 処方医削除
+        async function deleteDoctor(doctorId) {
+            if (!confirm('この処方医を削除してもよろしいですか?\n※関連する服薬情報は削除されません')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/prescribing-doctors/${doctorId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    alert('処方医を削除しました');
+                    loadDoctors();
+                } else {
+                    throw new Error('処方医の削除に失敗しました');
+                }
+            } catch (error) {
+                console.error('処方医削除エラー:', error);
+                alert('処方医の削除に失敗しました');
+            }
+        }
+
+        // Enterキーで検索
+        document.addEventListener('DOMContentLoaded', function() {
+            ['searchName', 'searchHospital', 'searchSpecialty'].forEach(id => {
+                document.getElementById(id).addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        searchDoctors();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

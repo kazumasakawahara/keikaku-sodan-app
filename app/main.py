@@ -257,6 +257,13 @@ async def organization_edit_page(request: Request, organization_id: int):
     return templates.TemplateResponse("organizations/edit.html", {"request": request, "organization_id": organization_id})
 
 
+# 処方医管理画面
+@app.get("/doctors")
+async def doctors_list_page(request: Request):
+    """処方医一覧画面"""
+    return templates.TemplateResponse("doctors/list.html", {"request": request})
+
+
 # スタッフ管理画面
 @app.get("/staffs")
 async def staffs_list_page(request: Request):

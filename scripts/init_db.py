@@ -11,7 +11,10 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from app.database.connection import Base, engine
-from app.models import Staff, User, Notebook, Consultation, Organization, UserOrganization
+from app.models import (
+    Staff, User, Notebook, Consultation, Organization, UserOrganization,
+    PrescribingDoctor, Medication, MedicationChange
+)
 
 
 def init_database():

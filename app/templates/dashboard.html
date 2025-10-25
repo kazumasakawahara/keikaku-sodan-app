@@ -54,6 +54,52 @@
     </div>
 </div>
 
+<!-- 服薬情報統計 -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-capsule text-danger" style="font-size: 2.5rem;"></i>
+                <h3 class="mt-2" id="current-medications">-</h3>
+                <p class="text-muted mb-0">現在服用中の薬</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-person-check text-danger" style="font-size: 2.5rem;"></i>
+                <h3 class="mt-2" id="users-with-medications">-</h3>
+                <p class="text-muted mb-0">服薬中の利用者</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-person-badge text-danger" style="font-size: 2.5rem;"></i>
+                <h3 class="mt-2" id="total-doctors">-</h3>
+                <p class="text-muted mb-0">登録処方医数</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card shadow-sm">
+            <div class="card-header bg-danger text-white">
+                <h6 class="mb-0 small"><i class="bi bi-award"></i> 処方医別利用者数</h6>
+            </div>
+            <div class="card-body p-2" style="max-height: 180px; overflow-y: auto;">
+                <div id="top-doctors-list">
+                    <p class="text-muted small mb-0">読み込み中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- アラート一覧 -->
 <div class="row g-4 mb-4">
     <div class="col-12">
@@ -179,6 +225,29 @@
                 document.getElementById('total-users').textContent = stats.total_users;
                 document.getElementById('active-plans').textContent = stats.active_plans;
                 document.getElementById('upcoming-monitorings').textContent = stats.upcoming_monitorings;
+
+                // 服薬情報統計カード更新
+                if (stats.medication_stats) {
+                    document.getElementById('current-medications').textContent = stats.medication_stats.current_medications;
+                    document.getElementById('users-with-medications').textContent = stats.medication_stats.users_with_medications;
+                    document.getElementById('total-doctors').textContent = stats.medication_stats.total_doctors;
+
+                    // 処方医別利用者数リスト
+                    const doctorsList = document.getElementById('top-doctors-list');
+                    if (stats.medication_stats.top_doctors && stats.medication_stats.top_doctors.length > 0) {
+                        doctorsList.innerHTML = stats.medication_stats.top_doctors.map(doc => `
+                            <div class="d-flex justify-content-between align-items-center mb-1 small">
+                                <span class="text-truncate" style="max-width: 70%;">
+                                    <i class="bi bi-person-badge"></i> ${doc.doctor_name}
+                                    ${doc.hospital_name ? `<br><small class="text-muted">${doc.hospital_name}</small>` : ''}
+                                </span>
+                                <span class="badge bg-danger">${doc.patient_count}名</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        doctorsList.innerHTML = '<p class="text-muted small mb-0">データがありません</p>';
+                    }
+                }
 
                 // グラフ作成
                 if (Object.keys(stats.consultation_by_type).length > 0) {

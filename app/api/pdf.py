@@ -11,6 +11,7 @@ from app.database.connection import get_db
 from app.models.user import User
 from app.models.plan import Plan
 from app.models.monitoring import Monitoring
+from app.models.medication import Medication
 from app.models.staff import Staff
 from app.services.pdf_service import PDFService
 from app.api.auth import get_current_staff
@@ -123,5 +124,43 @@ def generate_monitoring_pdf(
         media_type="application/pdf",
         headers={
             "Content-Disposition": f"attachment; filename=monitoring_{monitoring_id}.pdf"
+        }
+    )
+
+
+@router.get("/medications/user/{user_id}")
+def generate_medications_pdf(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_staff: Staff = Depends(get_current_staff)
+):
+    """
+    服薬情報一覧PDFを生成
+
+    Args:
+        user_id: 利用者ID
+        db: データベースセッション
+        current_staff: 現在のスタッフ
+
+    Returns:
+        StreamingResponse: PDFファイル
+    """
+    user = db.query(User).filter(User.id == user_id, User.is_deleted == False).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="指定された利用者が見つかりません"
+        )
+
+    # 利用者の服薬情報を取得
+    medications = db.query(Medication).filter(Medication.user_id == user_id).order_by(Medication.is_current.desc(), Medication.start_date.desc()).all()
+
+    pdf_buffer = pdf_service.generate_medications_pdf(user, medications)
+
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=medications_user_{user_id}.pdf"
         }
     )

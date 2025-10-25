@@ -21,6 +21,7 @@ from app.models.user import User
 from app.models.plan import Plan
 from app.models.monitoring import Monitoring
 from app.models.consultation import Consultation
+from app.models.medication import Medication
 
 import base64
 from reportlab.lib.utils import ImageReader
@@ -586,6 +587,168 @@ class PDFService:
         # PDF生成
         def add_page_decorations(canvas, doc):
             self._add_header(canvas, doc, f"ネットワーク図 - {user_name}")
+            self._add_footer(canvas, doc)
+
+        doc.build(story, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)
+        buffer.seek(0)
+        return buffer
+
+    def generate_medications_pdf(self, user: User, medications: list) -> BytesIO:
+        """
+        服薬情報一覧PDFを生成
+
+        Args:
+            user: 利用者モデル
+            medications: 服薬情報リスト
+
+        Returns:
+            BytesIO: PDFデータ
+        """
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=self.page_size,
+            topMargin=30*mm,
+            bottomMargin=20*mm,
+            leftMargin=20*mm,
+            rightMargin=20*mm
+        )
+
+        story = []
+
+        # タイトル
+        title_table = Table([[f"服薬情報一覧 - {user.name}"]], colWidths=[170*mm])
+        title_table.setStyle(TableStyle([
+            ('FONT', (0, 0), (-1, -1), self.font_name, 16),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#333333')),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        story.append(title_table)
+        story.append(Spacer(1, 10*mm))
+
+        # 利用者基本情報
+        user_info_table = Table([["利用者基本情報"]], colWidths=[170*mm])
+        user_info_table.setStyle(TableStyle([
+            ('FONT', (0, 0), (-1, -1), self.font_name, 12),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#333333')),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        story.append(user_info_table)
+
+        user_data = [
+            ["氏名", user.name or ""],
+            ["生年月日", user.birth_date.strftime('%Y年%m月%d日') if user.birth_date else ""],
+            ["年齢", f"{user.age}歳" if user.age else ""],
+        ]
+        user_table = Table(user_data, colWidths=[50*mm, 120*mm])
+        user_table.setStyle(TableStyle([
+            ('FONT', (0, 0), (-1, -1), self.font_name, 10),
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('TOPPADDING', (0, 0), (-1, -1), 5),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ]))
+        story.append(user_table)
+        story.append(Spacer(1, 10*mm))
+
+        # 現在服用中の薬
+        current_medications = [m for m in medications if m.is_current]
+        if current_medications:
+            heading_table = Table([["現在服用中の薬"]], colWidths=[170*mm])
+            heading_table.setStyle(TableStyle([
+                ('FONT', (0, 0), (-1, -1), self.font_name, 12),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#333333')),
+                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#e8f5e9')),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ]))
+            story.append(heading_table)
+
+            med_data = [["薬品名", "用量", "回数", "タイミング", "処方医", "開始日"]]
+            for med in current_medications:
+                doctor_name = med.prescribing_doctor.name if med.prescribing_doctor else ""
+                start_date = med.start_date.strftime('%Y/%m/%d') if med.start_date else ""
+                med_data.append([
+                    med.medication_name or "",
+                    med.dosage or "",
+                    med.frequency or "",
+                    med.timing or "",
+                    doctor_name,
+                    start_date
+                ])
+
+            med_table = Table(med_data, colWidths=[40*mm, 25*mm, 25*mm, 25*mm, 30*mm, 25*mm])
+            med_table.setStyle(TableStyle([
+                ('FONT', (0, 0), (-1, -1), self.font_name, 9),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#c8e6c9')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ]))
+            story.append(med_table)
+            story.append(Spacer(1, 10*mm))
+
+        # 過去の服薬情報
+        past_medications = [m for m in medications if not m.is_current]
+        if past_medications:
+            heading_table = Table([["過去の服薬情報"]], colWidths=[170*mm])
+            heading_table.setStyle(TableStyle([
+                ('FONT', (0, 0), (-1, -1), self.font_name, 12),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#333333')),
+                ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f5f5f5')),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+            ]))
+            story.append(heading_table)
+
+            past_data = [["薬品名", "用量", "処方医", "開始日", "終了日"]]
+            for med in past_medications:
+                doctor_name = med.prescribing_doctor.name if med.prescribing_doctor else ""
+                start_date = med.start_date.strftime('%Y/%m/%d') if med.start_date else ""
+                end_date = med.end_date.strftime('%Y/%m/%d') if med.end_date else ""
+                past_data.append([
+                    med.medication_name or "",
+                    med.dosage or "",
+                    doctor_name,
+                    start_date,
+                    end_date
+                ])
+
+            past_table = Table(past_data, colWidths=[45*mm, 30*mm, 35*mm, 30*mm, 30*mm])
+            past_table.setStyle(TableStyle([
+                ('FONT', (0, 0), (-1, -1), self.font_name, 9),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e0e0e0')),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+                ('TOPPADDING', (0, 0), (-1, -1), 3),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+            ]))
+            story.append(past_table)
+
+        # 服薬情報がない場合
+        if not medications:
+            no_data_table = Table([["現在、登録されている服薬情報はありません。"]], colWidths=[170*mm])
+            no_data_table.setStyle(TableStyle([
+                ('FONT', (0, 0), (-1, -1), self.font_name, 10),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors.grey),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 20),
+            ]))
+            story.append(no_data_table)
+
+        # PDF生成
+        def add_page_decorations(canvas, doc):
+            self._add_header(canvas, doc, f"服薬情報一覧 - {user.name}")
             self._add_footer(canvas, doc)
 
         doc.build(story, onFirstPage=add_page_decorations, onLaterPages=add_page_decorations)

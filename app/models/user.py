@@ -63,6 +63,7 @@ class User(Base):
     user_organizations = relationship("UserOrganization", back_populates="user")
     plans = relationship("Plan", back_populates="user")
     monitorings = relationship("Monitoring", back_populates="user")
+    medications = relationship("Medication", back_populates="user")
 
     @property
     def age(self):
